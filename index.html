@@ -53,9 +53,20 @@
     position:sticky;top:0;z-index:20;background:#1f1b4b;color:#fff;
     padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;
   }
+  header .hl{min-width:0}
   header .t{font-size:16px;font-weight:700;letter-spacing:-.3px}
-  header .s{font-size:11px;color:#bfbce8;margin-top:2px}
+  header .s{font-size:11px;color:#bfbce8;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}
+  header .hr{display:flex;align-items:center;gap:7px;flex:0 0 auto}
   header .lockbtn{font-size:12px;color:#cfd4ff;border:1px solid rgba(255,255,255,.22);padding:7px 11px;border-radius:999px}
+  .syncbadge{
+    font-size:11px;font-weight:700;letter-spacing:-.2px;white-space:nowrap;
+    padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.2);
+    background:rgba(255,255,255,.1);color:#d9d7f5;
+  }
+  .syncbadge.ok{background:#177f52;border-color:#177f52;color:#fff}
+  .syncbadge.busy{background:#9a6b12;border-color:#9a6b12;color:#fff}
+  .syncbadge.err{background:#b3245a;border-color:#b3245a;color:#fff}
+  .syncbadge.wait{background:rgba(165,180,252,.22);border-color:rgba(165,180,252,.5);color:#e7e9ff}
 
   main{max-width:560px;margin:0 auto;padding:14px 14px 8px}
   .card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 1px 2px rgba(16,18,45,.05)}
@@ -107,7 +118,7 @@
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .field{display:block;margin-bottom:10px}
   .field .lb{font-size:12px;color:var(--muted);margin-bottom:4px;display:block}
-  .field input[type=date],.field input[type=time],.field input[type=text],.field textarea{
+  .field input[type=date],.field input[type=time],.field input[type=text],.field input[type=password],.field textarea{
     width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:#fbfbfd;outline:none;
   }
   .field textarea{resize:vertical;min-height:60px}
@@ -182,6 +193,13 @@
   .io button,.io label{font-size:13px;padding:11px 14px;border-radius:12px;background:#f1f2f7;color:#374151;font-weight:600;cursor:pointer}
   .io .primary{background:var(--soft);color:var(--primary-dark)}
   .hint{font-size:11px;color:#9ca3af;margin-top:10px;line-height:1.6}
+  .hint code{background:#f1f2f7;border-radius:5px;padding:1px 4px;font-size:10.5px}
+  .syncrow{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:12.5px;padding:7px 0;border-bottom:1px dashed var(--line)}
+  .syncrow:last-of-type{border-bottom:0}
+  .syncrow span{color:var(--muted)}
+  .syncrow b{font-weight:700;color:#1f2333;text-align:right;word-break:break-word}
+  .syncrow b.err{color:#b3245a}
+  .syncrow b.ok{color:#177f52}
 
   /* ---------- 시작 시각 지정 ---------- */
   .dtrow{display:flex;align-items:center;gap:8px;background:#fbfbfd;border:1px solid var(--line);border-radius:13px;padding:6px 6px 6px 12px;margin-top:8px}
@@ -269,11 +287,14 @@
 <!-- ================= 앱 ================= -->
 <div id="app" hidden>
   <header>
-    <div>
+    <div class="hl">
       <div class="t">편두통 기록</div>
       <div class="s" id="syncInfo">불러오는 중…</div>
     </div>
-    <button class="lockbtn" id="relockBtn">잠금</button>
+    <div class="hr">
+      <button class="syncbadge local" id="syncBadge" type="button">💾 로컬만</button>
+      <button class="lockbtn" id="relockBtn">잠금</button>
+    </div>
   </header>
 
   <main>
@@ -400,6 +421,24 @@
         <h2>보안</h2>
         <label class="checkrow" style="margin:0"><label><input type="checkbox" id="remember2" /> 이 기기에서 비밀번호 기억</label></label>
         <div class="hint">기억을 끄면 이 기기에 저장된 열쇠가 지워져서, 다음에 열 때 비밀번호를 다시 물어봐. 기록은 암호화된 <code>data.enc.json</code>에 있고 이 앱에는 평문이 들어 있지 않아.</div>
+      </div>
+      <div class="card" id="syncCard">
+        <h2>☁️ GitHub 자동 저장</h2>
+        <div class="syncrow"><span>상태</span><b id="syncStateText">이 기기에만 저장 중</b></div>
+        <div class="syncrow"><span>이 기기 변경</span><b id="syncPending">없음</b></div>
+        <div class="syncrow"><span>마지막 동기화</span><b id="syncLast">-</b></div>
+        <label class="field" style="margin-top:12px"><span class="lb">GitHub 자동 저장 토큰 (PAT)</span>
+          <input type="password" id="ghPatInput" placeholder="github_pat_… 또는 ghp_…" autocomplete="off" spellcheck="false" />
+        </label>
+        <div class="io">
+          <button class="primary" id="ghConnBtn">연결하고 동기화</button>
+          <button id="ghSyncBtn">지금 동기화</button>
+          <button id="ghOffBtn">연결 해제</button>
+        </div>
+        <div class="hint" id="ghHint">
+          토큰은 이 브라우저에만 저장하고 다른 곳으로 보내지 않아. 기록은 암호화된 채로 <code>data.enc.json</code>에 올라가. 폰을 바꿔도 토큰만 넣으면 그대로 이어져.
+          <br>토큰 만들기: GitHub → Settings → Developer settings → Fine-grained tokens → 저장소는 <b>migraine-log</b> 만, 권한은 <b>Contents: Read and write</b>.
+        </div>
       </div>
     </section>
   </main>
@@ -538,13 +577,316 @@ function upsert(rec){
   delta.overrides[rec.id] = rec;
   delta.deleted = delta.deleted.filter(id => id !== rec.id);
   saveDelta(); rebuild();
+  scheduleSync();
 }
 function remove(id){
   delete delta.overrides[id];
   if(base.some(r => r.id === id) && !delta.deleted.includes(id)) delta.deleted.push(id);
   saveDelta(); rebuild();
+  scheduleSync();
 }
 const localCount = () => Object.keys(delta.overrides).length + delta.deleted.length;
+
+/* ============================================================
+   GitHub 자동 저장 · 동기화
+   - 토큰(PAT)은 이 브라우저 localStorage 에만 둔다.
+   - 올라가는 건 언제나 암호문: 기존 salt 유지 + 새 iv 로 AES-256-GCM.
+   - 원격 파일을 먼저 받아 복호화하고, 이 기기의 변경분(delta)을 id 기준으로
+     합친 뒤 한 번에 커밋한다(sha 충돌이면 새 sha 로 1회 재시도).
+   ============================================================ */
+const GH_CONTENTS = 'https://api.github.com/repos/Yethel/migraine-log/contents/data.enc.json';
+const LS_PAT  = 'mig_gh_pat';
+const LS_SYNC = 'mig_sync_meta_v1';
+
+let ghPat = '';
+try{ ghPat = localStorage.getItem(LS_PAT) || ''; }catch(e){ ghPat = ''; }
+let syncSalt = null;      // aesKey 를 만든 salt (Uint8Array)
+let syncIters = ITERATIONS;
+let sessionPw = null;     // 이번 세션에 입력한 비밀번호 (메모리에만) — salt 가 바뀌었을 때 재유도용
+let syncState = ghPat ? 'wait' : 'local';   // local | wait | syncing | synced | error
+let syncErrMsg = '';
+let lastSyncAt = 0;
+try{ lastSyncAt = Number((JSON.parse(localStorage.getItem(LS_SYNC) || '{}') || {}).lastSync) || 0; }catch(e){ lastSyncAt = 0; }
+let syncTimer = null;
+let syncing = false;
+let syncAgain = false;
+
+function saltIsSame(b64){
+  if(!syncSalt || !b64) return false;
+  let b; try{ b = b64ToBytes(b64); }catch(e){ return false; }
+  if(b.length !== syncSalt.length) return false;
+  for(let i=0;i<b.length;i++) if(b[i] !== syncSalt[i]) return false;
+  return true;
+}
+function syncErrText(e){
+  const m = String((e && e.message) || e || '');
+  if(m === 'auth') return '토큰이 거부됐어(401). 새 토큰을 넣어 줘';
+  if(m === 'forbidden') return '이 토큰으로는 저장 권한이 없어. Contents: Read and write 로 만들어 줘';
+  if(m === 'salt') return '다른 곳에서 암호를 새로 만들었어. 잠갔다가 비밀번호로 다시 열어 줘';
+  if(m === 'key') return '원격 파일을 이 열쇠로 못 열었어. 비밀번호로 다시 열어 줘';
+  if(m === 'key_readonly') return '이 기기의 열쇠가 예전 형식이라 저장이 안 돼. 잠갔다가 비밀번호로 다시 열어 줘';
+  if(m === 'locked') return '먼저 비밀번호로 열어 줘';
+  if(m === 'conflict') return '원격이 계속 바뀌고 있어. 잠시 뒤에 다시 시도해 줘';
+  if(m.indexOf('get_') === 0) return 'GitHub 읽기 실패(' + m.slice(4) + ')';
+  if(m.indexOf('put_') === 0) return 'GitHub 저장 실패(' + m.slice(4) + ')';
+  if(m === 'enc_not_found') return '원격에 data.enc.json 이 없어';
+  return '네트워크 오류일 수 있어. 잠시 뒤 다시 시도해 줘';
+}
+function syncStatusText(){
+  if(!ghPat) return '이 기기에만 저장 중';
+  if(syncState === 'syncing') return '저장 중…';
+  if(syncState === 'error') return '오류 · ' + syncErrMsg;
+  if(syncState === 'synced') return 'GitHub에 암호화 저장됨';
+  return '연결됨 · 아직 동기화 전';
+}
+function updateSyncInfo(){
+  const parts = [];
+  parts.push(encryptedLoaded ? `${base.length}건 불러옴` : '암호화 데이터 없음 · 이 기기 기록만');
+  if(localCount()) parts.push(`이 기기 변경 ${localCount()}건`);
+  if(ghPat && lastSyncAt) parts.push(`☁️ ${hhmm(new Date(lastSyncAt))}`);
+  const el = $('#syncInfo');
+  if(el) el.textContent = parts.join(' · ');
+}
+function renderSync(){
+  const badge = $('#syncBadge');
+  if(badge){
+    const map = {
+      local:   ['local', '💾 로컬만'],
+      wait:    ['wait',  '☁️ 연결됨'],
+      syncing: ['busy',  '⏳ 저장 중'],
+      synced:  ['ok',    '☁️ 동기화됨'],
+      error:   ['err',   '⚠️ 오류']
+    };
+    const pick = map[syncState] || map.local;
+    badge.className = 'syncbadge ' + pick[0];
+    badge.textContent = pick[1];
+    badge.title = syncStatusText();
+  }
+  const st = $('#syncStateText');
+  if(st){
+    st.textContent = syncStatusText();
+    st.className = syncState === 'error' ? 'err' : (syncState === 'synced' ? 'ok' : '');
+  }
+  const pend = $('#syncPending');
+  if(pend){
+    pend.textContent = localCount() ? `${localCount()}건` : '없음';
+    pend.className = localCount() ? 'err' : '';
+  }
+  const last = $('#syncLast');
+  if(last){
+    last.textContent = lastSyncAt
+      ? `${ymd(new Date(lastSyncAt)).slice(5,7)}/${ymd(new Date(lastSyncAt)).slice(8,10)} ${hhmm(new Date(lastSyncAt))}`
+      : '-';
+  }
+  updateSyncInfo();
+}
+
+function ghHeaders(json){
+  const h = { 'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28' };
+  if(ghPat) h.Authorization = 'Bearer ' + ghPat;
+  if(json) h['Content-Type'] = 'application/json';
+  return h;
+}
+/* 원격 data.enc.json 의 현재 sha + 암호문(JSON) 을 가져온다 */
+async function ghFetchRemote(){
+  const res = await fetch(GH_CONTENTS, { cache:'no-store', headers: ghHeaders(false) });
+  if(res.status === 404) return null;
+  if(res.status === 401) throw new Error('auth');
+  if(res.status === 403) throw new Error('forbidden');
+  if(!res.ok) throw new Error('get_' + res.status);
+  const j = await res.json();
+  const b64 = String(j.content || '').replace(/\s+/g, '');
+  const text = dec.decode(b64ToBytes(b64));
+  return { sha: j.sha, payload: JSON.parse(text) };
+}
+/* 원격 암호문을 이 세션 열쇠로 푼다. salt 가 다르면(다른 곳에서 새로 만든 경우)
+   이번 세션에 입력한 비밀번호로 다시 유도한다. */
+async function decryptRemote(payload){
+  if(!payload) return [];
+  if(saltIsSame(payload.salt)){
+    try{
+      const arr = await decryptWithKey(aesKey, payload);
+      return Array.isArray(arr) ? arr : [];
+    }catch(e){
+      if(!sessionPw) throw new Error('key');
+    }
+  }else if(!sessionPw){
+    throw new Error('salt');
+  }
+  const salt = b64ToBytes(String(payload.salt || ''));
+  const key = await deriveKey(sessionPw, salt, payload.iterations || ITERATIONS);
+  const arr = await decryptWithKey(key, payload);
+  aesKey = key; syncSalt = salt; syncIters = payload.iterations || ITERATIONS;
+  try{
+    if(localStorage.getItem(LS_KEY)){
+      const raw = await crypto.subtle.exportKey('raw', key);
+      localStorage.setItem(LS_KEY, bytesToB64(new Uint8Array(raw)));
+    }
+  }catch(e){ /* 기억 안 함 */ }
+  return Array.isArray(arr) ? arr : [];
+}
+/* 이 세션 열쇠로 새 암호문 만들기: salt 유지 + 새 랜덤 iv (파이썬 스크립트와 같은 포맷) */
+async function encryptRecords(recordsArr){
+  if(!aesKey || !syncSalt) throw new Error('locked');
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const flat = JSON.stringify(recordsArr);
+  let ct;
+  try{
+    ct = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, aesKey, enc.encode(flat));
+  }catch(e){
+    if(!sessionPw) throw new Error('key_readonly');
+    aesKey = await deriveKey(sessionPw, syncSalt, syncIters);
+    ct = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, aesKey, enc.encode(flat));
+  }
+  return {
+    salt: bytesToB64(syncSalt),
+    iv: bytesToB64(iv),
+    ciphertext: bytesToB64(new Uint8Array(ct)),
+    iterations: syncIters,
+    v: 1
+  };
+}
+/* 원격 기록 + 이 기기 변경분을 id 기준 병합 */
+function mergeRecords(remoteArr, d){
+  const del = new Set((d && d.deleted) || []);
+  const ov = (d && d.overrides) || {};
+  const out = [], seen = new Set();
+  for(const r of (remoteArr || [])){
+    if(!r || !r.id || del.has(r.id)) continue;
+    out.push(ov[r.id] ? Object.assign({}, r, ov[r.id]) : r);
+    seen.add(r.id);
+  }
+  for(const id in ov){
+    if(seen.has(id) || del.has(id)) continue;
+    out.push(ov[id]);
+  }
+  return out;
+}
+/* 커밋에 성공한 변경분만 delta 에서 지운다 (동기화 중 새로 생긴 변경은 남긴다) */
+function applyDeltaSnapshot(snap){
+  for(const id in snap.overrides){
+    const cur = delta.overrides[id];
+    if(cur && JSON.stringify(cur) === JSON.stringify(snap.overrides[id])) delete delta.overrides[id];
+  }
+  for(const id of snap.deleted){
+    if(delta.deleted.includes(id)) delta.deleted = delta.deleted.filter(x => x !== id);
+  }
+  saveDelta();
+}
+
+async function doSync(reason){
+  if(!ghPat){ syncState = 'local'; renderSync(); return false; }
+  if(!aesKey || !syncSalt){ toast('먼저 비밀번호로 열어 줘'); return false; }
+  if(syncing){ syncAgain = true; return false; }
+  syncing = true; syncState = 'syncing'; syncErrMsg = ''; renderSync();
+  const snap = JSON.parse(JSON.stringify(delta));
+  const pending = Object.keys(snap.overrides || {}).length + (snap.deleted || []).length;
+  let ok = false;
+  try{
+    for(let attempt = 0; attempt < 2 && !ok; attempt++){
+      const remote = await ghFetchRemote();
+      const remoteArr = remote ? await decryptRemote(remote.payload) : [];
+      if(remote && !pending){
+        // 올릴 게 없으면 원격이 더 새로울 수 있으니 당겨오기만 한다
+        base = remoteArr;
+        ok = true;
+        break;
+      }
+      const seed = remote ? remoteArr : base;   // 원격 파일이 없으면 마지막으로 알던 내용을 기준으로 삼는다
+      if(!seed.length && !pending){ ok = true; break; }
+      const merged = mergeRecords(seed, snap);
+      if(remote && JSON.stringify(merged) === JSON.stringify(remoteArr)){
+        // 이미 원격에 들어가 있는 변경분이면 커밋을 또 만들지 않는다
+        base = remoteArr;
+        applyDeltaSnapshot(snap);
+        ok = true;
+        break;
+      }
+      const payload = await encryptRecords(merged);
+      const body = {
+        message: 'Update migraine records',
+        content: bytesToB64(enc.encode(JSON.stringify(payload))),
+        branch: 'main'
+      };
+      if(remote && remote.sha) body.sha = remote.sha;
+      const res = await fetch(GH_CONTENTS, {
+        method: 'PUT', cache: 'no-store', headers: ghHeaders(true), body: JSON.stringify(body)
+      });
+      if(res.ok){
+        base = merged;
+        applyDeltaSnapshot(snap);
+        ok = true;
+        break;
+      }
+      if(res.status === 409 || res.status === 422) continue;   // sha 가 바뀜 → 최신 sha 로 한 번 더
+      if(res.status === 401) throw new Error('auth');
+      if(res.status === 403) throw new Error('forbidden');
+      throw new Error('put_' + res.status);
+    }
+    if(!ok) throw new Error('conflict');
+    lastSyncAt = Date.now();
+    try{ localStorage.setItem(LS_SYNC, JSON.stringify({ lastSync: lastSyncAt })); }catch(e){}
+    syncState = 'synced'; syncErrMsg = '';
+    rebuild(); renderAll();
+    if(reason === 'manual' || reason === 'connect') toast('☁️ GitHub에 저장했어');
+  }catch(e){
+    syncState = 'error';
+    syncErrMsg = syncErrText(e);
+    if(reason === 'manual' || reason === 'connect') toast('동기화 실패 · ' + syncErrMsg);
+  }finally{
+    syncing = false;
+    renderSync();
+    if(syncAgain){ syncAgain = false; if(syncState !== 'error') scheduleSync(400); }
+    else if(localCount() && syncState === 'synced') scheduleSync(1200);
+  }
+  return ok;
+}
+/* 기록이 바뀔 때마다 부른다 — 잠깐 모았다가 한 번만 커밋 */
+function scheduleSync(delay){
+  if(!ghPat || !aesKey || !syncSalt){ renderSync(); return; }
+  if(syncTimer) clearTimeout(syncTimer);
+  syncState = 'syncing'; renderSync();
+  syncTimer = setTimeout(function(){ syncTimer = null; doSync('auto'); }, delay || 1500);
+}
+
+async function connectPat(){
+  const el = $('#ghPatInput');
+  if(!el) return;
+  const t = (el.value || '').trim();
+  if(!t){ toast('토큰을 붙여 넣어 줘'); return; }
+  if(!/^[A-Za-z0-9_]{20,}$/.test(t)){ toast('토큰 형식이 아니야'); return; }
+  const btn = $('#ghConnBtn');
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = '확인 중…';
+  const prevPat = ghPat;
+  syncState = 'syncing'; renderSync();
+  ghPat = t;
+  try{
+    const remote = await ghFetchRemote();          // 연결 테스트
+    localStorage.setItem(LS_PAT, t);
+    el.value = '';
+    toast(remote ? '연결됐어 · 원격 파일 확인' : '연결됐어 · 원격 파일 없음');
+    syncState = 'wait'; renderSync();
+    await doSync('connect');
+  }catch(e){
+    ghPat = prevPat;
+    syncErrMsg = syncErrText(e);
+    syncState = prevPat ? (lastSyncAt ? 'synced' : 'wait') : 'local';
+    toast('연결 실패 · ' + syncErrMsg);
+    renderSync();
+  }finally{
+    btn.disabled = false; btn.textContent = label;
+  }
+}
+function disconnectPat(){
+  if(!ghPat){ toast('연결된 토큰이 없어'); return; }
+  if(!confirm('GitHub 자동 저장을 해제할까?\n저장된 토큰을 이 브라우저에서 지워.')) return;
+  try{ localStorage.removeItem(LS_PAT); }catch(e){}
+  ghPat = ''; syncState = 'local'; syncErrMsg = '';
+  if(syncTimer){ clearTimeout(syncTimer); syncTimer = null; }
+  const el = $('#ghPatInput'); if(el) el.value = '';
+  renderSync(); toast('연결 해제 · 이 기기에만 저장해');
+}
 
 /* ============================================================
    날짜 / 시간 계산
@@ -851,9 +1193,7 @@ function renderRecord(){
   }
   wxBox.innerHTML = wxHtml;
 
-  const si = [`${base.length}건 불러옴`];
-  if(localCount()) si.push(`이 기기 변경 ${localCount()}건`);
-  $('#syncInfo').textContent = encryptedLoaded ? si.join(' · ') : '암호화 데이터 없음 · 이 기기 기록만';
+  updateSyncInfo();
 }
 
 function updateTimer(){
@@ -1414,6 +1754,7 @@ function importJSON(file){
         delta.overrides[rec.id] = rec; n++;
       }
       saveDelta(); rebuild(); renderAll();
+      scheduleSync();
       toast(`${n}건 가져왔어`);
     }catch(e){ toast('JSON 파일을 읽지 못했어'); }
   };
@@ -1458,6 +1799,9 @@ function forgetKey(){
 }
 function lock(){
   aesKey = null; base = []; records = []; encryptedLoaded = false;
+  syncSalt = null; sessionPw = null;
+  if(syncTimer){ clearTimeout(syncTimer); syncTimer = null; }
+  syncState = ghPat ? (lastSyncAt ? 'synced' : 'wait') : 'local';
   if(tick){ clearInterval(tick); tick = null; }
   $('#app').hidden = true;
   $('#lock').hidden = false;
@@ -1471,6 +1815,7 @@ function lock(){
    ============================================================ */
 async function boot(){
   loadDelta();
+  renderSync();
   calY = new Date().getFullYear();
   calM = new Date().getMonth();
   setNowDefaults(true);
@@ -1483,9 +1828,10 @@ async function boot(){
     box.textContent = '이 기기에 기억된 열쇠로 여는 중…';
     try{
       const payload = await fetchEnc();
-      const key = await crypto.subtle.importKey('raw', b64ToBytes(saved), 'AES-GCM', true, ['decrypt']);
+      const key = await crypto.subtle.importKey('raw', b64ToBytes(saved), 'AES-GCM', true, ['encrypt','decrypt']);
       const arr = await decryptWithKey(key, payload);
       aesKey = key; base = Array.isArray(arr) ? arr : []; encryptedLoaded = true;
+      syncSalt = b64ToBytes(payload.salt); syncIters = payload.iterations || ITERATIONS;
       box.textContent = '';
       enterApp();
       return;
@@ -1528,6 +1874,7 @@ async function unlock(){
     aesKey = key;
     base = Array.isArray(arr) ? arr : [];
     encryptedLoaded = true;
+    syncSalt = b64ToBytes(payload.salt); syncIters = payload.iterations || ITERATIONS; sessionPw = pw;
     if($('#remember').checked){
       const raw = await crypto.subtle.exportKey('raw', key);
       localStorage.setItem(LS_KEY, bytesToB64(new Uint8Array(raw)));
@@ -1557,7 +1904,10 @@ function enterApp(noData=false){
   setCalMode(calMode);
   switchView('record');
   renderAll();
+  renderSync();
   if(noData && !base.length && !localCount()) toast('빈 기록으로 시작해');
+  // 토큰이 있으면 열자마자 원격과 맞춘다 (이 기기 변경분이 있으면 그것까지 올린다)
+  if(ghPat && aesKey && syncSalt) setTimeout(function(){ doSync('open'); }, 400);
 }
 
 /* ---------- 이벤트 ---------- */
@@ -1599,6 +1949,14 @@ $$('nav.tabs button').forEach(b => b.onclick = () => switchView(b.dataset.view))
 $('#expJson').onclick = exportJSON;
 $('#expCsv').onclick = exportCSV;
 $('#impJson').onchange = e => { const f = e.target.files[0]; if(f) importJSON(f); e.target.value = ''; };
+$('#syncBadge').onclick = () => {
+  switchView('stats');
+  setTimeout(() => { const c = $('#syncCard'); if(c) c.scrollIntoView({ block:'center', behavior:'smooth' }); }, 80);
+};
+$('#ghConnBtn').onclick = connectPat;
+$('#ghSyncBtn').onclick = () => doSync('manual');
+$('#ghOffBtn').onclick = disconnectPat;
+if($('#ghPatInput')) $('#ghPatInput').addEventListener('keydown', e => { if(e.key === 'Enter') connectPat(); });
 $('#remember2').onchange = async e => {
   if(e.target.checked && aesKey){
     const raw = await crypto.subtle.exportKey('raw', aesKey);

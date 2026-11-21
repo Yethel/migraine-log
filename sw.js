@@ -4,7 +4,7 @@
    - 아이콘·매니페스트 같은 정적 자산은 cache-first.
    - 평문 기록은 다루지 않는다(암호문 data.enc.json 만 오간다). */
 
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CACHE = 'migraine-log-' + VERSION;
 const CACHE_PREFIX = 'migraine-log-';
 const PRECACHE = [
