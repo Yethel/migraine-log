@@ -657,7 +657,7 @@ function renderSync(){
       synced:  ['ok',    '☁️ 동기화됨'],
       error:   ['err',   '⚠️ 오류']
     };
-    const pick = map[syncState] || map.local;
+    const pick = map[ghPat ? syncState : 'local'] || map.local;
     badge.className = 'syncbadge ' + pick[0];
     badge.textContent = pick[1];
     badge.title = syncStatusText();
