@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#1f1b4b" />
+<meta name="robots" content="noindex, nofollow" />
+<title>편두통 기록</title>
+<style>
+  :root{
+    --bg:#f6f6f9; --card:#fff; --text:#14162b; --muted:#6b7280; --line:#e6e7ee;
+    --primary:#4f46e5; --primary-dark:#3f37c9; --soft:#eef0ff;
+    --pink:#e0326e; --pink-soft:#ffe9f0; --amber:#b7791f; --amber-soft:#fdf3dd;
+    --radius:18px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;
+    background:var(--bg); color:var(--text); font-size:16px; line-height:1.45;
+    padding-bottom:92px; -webkit-text-size-adjust:100%;
+  }
+  button{font-family:inherit;font-size:inherit;cursor:pointer;border:0;background:none;color:inherit}
+  input,textarea,select{font-family:inherit;font-size:16px;color:inherit}
+
+  /* ---------- 잠금 화면 ---------- */
+  #lock{
+    position:fixed;inset:0;z-index:100;background:linear-gradient(160deg,#1f1b4b,#2d2570 60%,#3b2f7a);
+    display:flex;align-items:center;justify-content:center;padding:24px;color:#fff;
+  }
+  #lock .box{width:100%;max-width:360px;text-align:center}
+  #lock .emoji{font-size:40px;line-height:1}
+  #lock h1{font-size:20px;margin:14px 0 6px;font-weight:700;letter-spacing:-.4px}
+  #lock p{font-size:13px;color:#c9c6f0;margin:0 0 22px}
+  #lock input[type=password]{
+    width:100%;padding:16px;border-radius:14px;border:1px solid rgba(255,255,255,.25);
+    background:rgba(255,255,255,.1);color:#fff;text-align:center;letter-spacing:6px;font-size:20px;
+  }
+  #lock input[type=password]::placeholder{letter-spacing:0;color:#a9a5d8;font-size:14px}
+  #lock .remember{display:flex;align-items:center;justify-content:center;gap:8px;margin:14px 0 20px;font-size:13px;color:#d6d3f5}
+  #lock .remember input{width:17px;height:17px;accent-color:#a5b4fc}
+  #lock .go{width:100%;padding:16px;border-radius:14px;background:#fff;color:#2d2570;font-weight:700;font-size:16px}
+  #lock .go:disabled{opacity:.55}
+  #lock .err{min-height:20px;margin-top:14px;font-size:13px;color:#ffc9d8}
+  #lock .alt{margin-top:20px;font-size:12px;color:#b4b0e0;line-height:1.6}
+  #lock .alt a{color:#dfe3ff}
+
+  /* ---------- 헤더 ---------- */
+  header{
+    position:sticky;top:0;z-index:20;background:#1f1b4b;color:#fff;
+    padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  }
+  header .t{font-size:16px;font-weight:700;letter-spacing:-.3px}
+  header .s{font-size:11px;color:#bfbce8;margin-top:2px}
+  header .lockbtn{font-size:12px;color:#cfd4ff;border:1px solid rgba(255,255,255,.22);padding:7px 11px;border-radius:999px}
+
+  main{max-width:560px;margin:0 auto;padding:14px 14px 8px}
+  .card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 1px 2px rgba(16,18,45,.05)}
+  .card h2{font-size:13px;font-weight:700;color:var(--muted);margin:0 0 10px;letter-spacing:-.2px}
+
+  /* ---------- 기록 화면 ---------- */
+  .now{text-align:center;font-size:13px;color:var(--muted);margin-bottom:6px}
+  .hero-state{text-align:center;font-size:15px;font-weight:700;margin-bottom:4px}
+  .hero-sub{text-align:center;font-size:12px;color:var(--muted);min-height:16px}
+  .bigbtn{
+    display:block;width:100%;padding:22px 16px;border-radius:20px;font-size:19px;font-weight:800;
+    letter-spacing:-.3px;margin-top:10px;color:#fff;background:var(--primary);
+    box-shadow:0 6px 16px rgba(79,70,229,.28);transition:transform .08s;
+  }
+  .bigbtn:active{transform:scale(.985)}
+  .bigbtn.stop{background:#0f172a;box-shadow:0 6px 16px rgba(15,23,42,.25)}
+  .timer{text-align:center;font-size:34px;font-weight:800;letter-spacing:-1px;margin:6px 0 0;font-variant-numeric:tabular-nums}
+  .timer small{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:0}
+
+  .toggle-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+  .toggle{
+    background:var(--card);border-radius:var(--radius);padding:16px 10px;text-align:center;
+    box-shadow:0 1px 2px rgba(16,18,45,.05);border:2px solid transparent;transition:.12s;
+  }
+  .toggle .ico{font-size:30px;line-height:1}
+  .toggle .lb{font-size:13px;font-weight:700;margin-top:8px;color:var(--muted)}
+  .toggle .st{font-size:11px;color:#9ca3af;margin-top:2px}
+  .toggle.on{border-color:var(--primary);background:var(--soft)}
+  .toggle.on .lb{color:var(--primary-dark)}
+  .toggle.on .st{color:var(--primary)}
+  .toggle.blood.on{border-color:var(--pink);background:var(--pink-soft)}
+  .toggle.blood.on .lb{color:#b3245a}
+  .toggle.blood.on .st{color:#b3245a}
+
+  .memoline{display:flex;gap:8px;align-items:center;background:var(--card);border-radius:14px;padding:4px 6px 4px 14px;box-shadow:0 1px 2px rgba(16,18,45,.05)}
+  .memoline input{flex:1;border:0;background:transparent;padding:12px 0;outline:none}
+  .memoline button{font-size:12px;font-weight:700;color:var(--primary);padding:10px 12px;border-radius:10px;background:var(--soft)}
+
+  .wx{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px}
+  .wx span{font-size:12px;color:#374151;background:#f1f2f7;border-radius:999px;padding:5px 10px}
+
+  details.manual{background:var(--card);border-radius:var(--radius);padding:0;margin-bottom:12px;box-shadow:0 1px 2px rgba(16,18,45,.05)}
+  details.manual summary{padding:14px 16px;font-size:13px;color:var(--muted);font-weight:600;list-style:none;cursor:pointer}
+  details.manual summary::-webkit-details-marker{display:none}
+  details.manual summary:after{content:"＋";float:right;color:#9ca3af}
+  details.manual[open] summary:after{content:"－"}
+  details.manual .inner{padding:0 16px 16px;border-top:1px solid var(--line);margin-top:0;padding-top:14px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .field{display:block;margin-bottom:10px}
+  .field .lb{font-size:12px;color:var(--muted);margin-bottom:4px;display:block}
+  .field input[type=date],.field input[type=time],.field input[type=text],.field textarea{
+    width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:#fbfbfd;outline:none;
+  }
+  .field textarea{resize:vertical;min-height:60px}
+  .checkrow{display:flex;gap:16px;margin:4px 0 12px;font-size:14px}
+  .checkrow label{display:flex;align-items:center;gap:6px}
+  .checkrow input{width:18px;height:18px;accent-color:var(--primary)}
+  .save{width:100%;padding:14px;border-radius:13px;background:var(--primary);color:#fff;font-weight:700}
+
+  /* ---------- 달력 ---------- */
+  .calhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .calhead .m{font-size:17px;font-weight:800;letter-spacing:-.3px}
+  .calhead .navbtn{width:38px;height:38px;border-radius:12px;background:#f1f2f7;font-size:16px;color:#4b5563}
+  .monTotal{background:var(--soft);border-radius:14px;padding:14px;text-align:center;margin-bottom:12px}
+  .monTotal b{font-size:26px;color:var(--primary-dark);letter-spacing:-.5px}
+  .monTotal span{font-size:12px;color:var(--primary-dark);opacity:.8}
+  .calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .dow{text-align:center;font-size:11px;color:#9ca3af;padding:4px 0 6px;font-weight:600}
+  .dow.sun{color:#e0326e}
+  .day{
+    position:relative;aspect-ratio:1/1;border-radius:12px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:1px;font-size:13px;color:#374151;background:#fafafc;border:1px solid transparent;
+  }
+  .day.empty{background:transparent}
+  .day.has{background:#eef0ff;font-weight:700;color:#2b2a6b}
+  .day.today{border-color:var(--primary)}
+  .day.sel{background:var(--primary);color:#fff}
+  .day.sel .marks{color:#fff}
+  .day .n{font-size:10px;color:var(--primary-dark)}
+  .day.sel .n{color:#fff}
+  .day .marks{font-size:9px;letter-spacing:-1px;line-height:1}
+  .day .ddot{position:absolute;bottom:4px;width:3px;height:3px;border-radius:50%;background:var(--primary)}
+  .day.sel .ddot{background:#fff}
+
+  .daydetail{margin-top:12px}
+  .dhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .dhead .dt{font-size:14px;font-weight:800}
+  .dhead .add{font-size:12px;font-weight:700;color:var(--primary);background:var(--soft);padding:7px 11px;border-radius:10px}
+  .rec{border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:8px}
+  .rec .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .rec .tm{font-size:13px;font-weight:700;color:#2b2a6b}
+  .rec .tm span{font-weight:500;color:var(--muted);font-size:12px}
+  .rec .del{font-size:12px;color:#9ca3af;padding:6px 8px}
+  .rec .meta{font-size:12px;color:var(--muted);margin-top:6px;display:flex;flex-wrap:wrap;gap:6px}
+  .rec .meta i{font-style:normal;background:#f1f2f7;border-radius:999px;padding:3px 8px}
+  .rec .note{font-size:13px;margin-top:8px;white-space:pre-wrap;color:#374151}
+  .rec .noteedit{width:100%;border:1px dashed var(--line);border-radius:10px;padding:8px;font-size:13px;background:#fcfcfe;margin-top:8px}
+  .rec .tog{display:flex;gap:6px;margin-top:8px}
+  .rec .tog button{font-size:12px;padding:6px 10px;border-radius:999px;background:#f1f2f7;color:#6b7280}
+  .rec .tog button.on{background:var(--soft);color:var(--primary-dark);font-weight:700}
+  .rec .tog button.on.blood{background:var(--pink-soft);color:#b3245a}
+  .empty{font-size:13px;color:#9ca3af;text-align:center;padding:16px 0}
+
+  /* ---------- 통계 ---------- */
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+  .stat{background:var(--card);border-radius:16px;padding:14px;box-shadow:0 1px 2px rgba(16,18,45,.05)}
+  .stat.wide{grid-column:1/-1}
+  .stat .v{font-size:24px;font-weight:800;letter-spacing:-.6px;color:#1f1b4b}
+  .stat .v small{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:0;margin-left:2px}
+  .stat .k{font-size:12px;color:var(--muted);margin-top:3px}
+  .bars{display:flex;flex-direction:column;gap:8px}
+  .bar{display:grid;grid-template-columns:64px 1fr 44px;align-items:center;gap:8px;font-size:12px}
+  .bar .bl{color:#4b5563;white-space:nowrap}
+  .bar .bt{height:9px;border-radius:999px;background:#f1f2f7;overflow:hidden}
+  .bar .bf{height:100%;border-radius:999px;background:var(--primary)}
+  .bar .bc{text-align:right;color:var(--muted)}
+  .io{display:flex;flex-wrap:wrap;gap:8px}
+  .io button,.io label{font-size:13px;padding:11px 14px;border-radius:12px;background:#f1f2f7;color:#374151;font-weight:600;cursor:pointer}
+  .io .primary{background:var(--soft);color:var(--primary-dark)}
+  .hint{font-size:11px;color:#9ca3af;margin-top:10px;line-height:1.6}
+
+  /* ---------- 탭바 ---------- */
+  nav.tabs{
+    position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(255,255,255,.96);
+    backdrop-filter:blur(8px);border-top:1px solid var(--line);display:flex;
+    padding:8px 6px calc(8px + env(safe-area-inset-bottom));
+  }
+  nav.tabs button{flex:1;text-align:center;padding:6px 0;font-size:11px;color:#9ca3af;font-weight:600}
+  nav.tabs button .i{display:block;font-size:20px;line-height:1.2}
+  nav.tabs button.on{color:var(--primary)}
+
+  .toast{
+    position:fixed;left:50%;bottom:104px;transform:translateX(-50%) translateY(12px);
+    background:#14162b;color:#fff;padding:11px 18px;border-radius:999px;font-size:13px;
+    opacity:0;pointer-events:none;transition:.22s;z-index:60;max-width:88vw;text-align:center;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<!-- ================= 잠금 화면 ================= -->
+<div id="lock">
+  <div class="box">
+    <div class="emoji">🔐</div>
+    <h1>편두통 기록</h1>
+    <p>암호화된 기록을 열려면 비밀번호를 입력해 줘</p>
+    <input type="password" id="pw" inputmode="numeric" autocomplete="current-password" placeholder="비밀번호" />
+    <label class="remember"><input type="checkbox" id="remember" /> 이 기기에서 비밀번호 기억</label>
+    <button class="go" id="unlockBtn">열기</button>
+    <div class="err" id="lockErr"></div>
+    <div class="alt" id="lockAlt"></div>
+  </div>
+</div>
+
+<!-- ================= 앱 ================= -->
+<div id="app" hidden>
+  <header>
+    <div>
+      <div class="t">편두통 기록</div>
+      <div class="s" id="syncInfo">불러오는 중…</div>
+    </div>
+    <button class="lockbtn" id="relockBtn">잠금</button>
+  </header>
+
+  <main>
+    <!-- 기록 -->
+    <section id="view-record">
+      <div class="card">
+        <div class="now" id="nowText"></div>
+        <div class="hero-state" id="heroState">기록 없음</div>
+        <div class="hero-sub" id="heroSub"></div>
+        <div id="timerBox" hidden>
+          <div class="timer" id="timer">0:00</div>
+        </div>
+        <button class="bigbtn" id="startBtn">두통 시작</button>
+        <button class="bigbtn stop" id="stopBtn" hidden>두통 종료</button>
+        <div class="wx" id="wxBox"></div>
+      </div>
+
+      <div class="toggle-row">
+        <button class="toggle" id="medBtn">
+          <div class="ico">💊</div>
+          <div class="lb">투약</div>
+          <div class="st" id="medState">안 함</div>
+        </button>
+        <button class="toggle blood" id="periodBtn">
+          <div class="ico">🩸</div>
+          <div class="lb">생리여부</div>
+          <div class="st" id="periodState">아니오</div>
+        </button>
+      </div>
+
+      <div class="memoline">
+        <input type="text" id="memo" placeholder="한 줄 메모 (선택)" maxlength="120" />
+        <button id="memoSave">저장</button>
+      </div>
+
+      <details class="manual" id="manualBox" style="margin-top:12px">
+        <summary>과거 기록 직접 추가·수정</summary>
+        <div class="inner">
+          <div class="grid2">
+            <label class="field"><span class="lb">날짜</span><input type="date" id="mDate" /></label>
+            <label class="field"><span class="lb">시작 시각 (선택)</span><input type="time" id="mTime" /></label>
+          </div>
+          <div class="checkrow">
+            <label><input type="checkbox" id="mMed" /> 💊 투약</label>
+            <label><input type="checkbox" id="mPeriod" /> 🩸 생리여부</label>
+          </div>
+          <label class="field"><span class="lb">메모</span><textarea id="mNote" placeholder="예: 오후부터 아팠고 저녁에 약 먹고 나음"></textarea></label>
+          <button class="save" id="mSave">이 날짜에 기록 저장</button>
+          <div class="hint">같은 날짜에 이미 기록이 있으면 새 기록으로 한 건 더 추가돼. 수정·삭제는 달력에서 날짜를 눌러서 해.</div>
+        </div>
+      </details>
+    </section>
+
+    <!-- 달력 -->
+    <section id="view-calendar" hidden>
+      <div class="card">
+        <div class="calhead">
+          <button class="navbtn" id="prevM">◀</button>
+          <div class="m" id="calTitle"></div>
+          <button class="navbtn" id="nextM">▶</button>
+        </div>
+        <div class="monTotal"><b id="monthTotal">0</b><span>회 · 이 달 두통 기록</span></div>
+        <div class="calgrid" id="calGrid"></div>
+        <div class="hint" id="calHint">날짜를 누르면 그날 기록을 보고 지울 수 있어.</div>
+      </div>
+      <div class="card daydetail" id="dayDetail"></div>
+    </section>
+
+    <!-- 통계 -->
+    <section id="view-stats" hidden>
+      <div class="stat-grid">
+        <div class="stat"><div class="v" id="stMonth">0</div><div class="k">이번 달 횟수</div></div>
+        <div class="stat"><div class="v" id="stAvg3">-</div><div class="k">최근 3개월 월평균</div></div>
+        <div class="stat"><div class="v" id="stTotal">0</div><div class="k">전체 누적</div></div>
+        <div class="stat"><div class="v" id="stDur">-</div><div class="k">평균 지속시간</div></div>
+        <div class="stat"><div class="v" id="stMed">-</div><div class="k">투약 비율</div></div>
+        <div class="stat"><div class="v" id="stPeriod">-</div><div class="k">생리 연관 비율</div></div>
+      </div>
+      <div class="card">
+        <h2>날씨별 분포</h2>
+        <div class="bars" id="wxBars"></div>
+        <div class="hint" id="wxHint"></div>
+      </div>
+      <div class="card">
+        <h2>기압</h2>
+        <div class="bars" id="pressBars"></div>
+      </div>
+      <div class="card">
+        <h2>데이터</h2>
+        <div class="io">
+          <button id="expCsv">CSV 내보내기</button>
+          <button id="expJson">JSON 내보내기</button>
+          <label>JSON 가져오기<input type="file" id="impJson" accept=".json,application/json" hidden /></label>
+        </div>
+        <div class="hint" id="dataHint"></div>
+      </div>
+      <div class="card">
+        <h2>보안</h2>
+        <label class="checkrow" style="margin:0"><label><input type="checkbox" id="remember2" /> 이 기기에서 비밀번호 기억</label></label>
+        <div class="hint">기억을 끄면 이 기기에 저장된 열쇠가 지워져서, 다음에 열 때 비밀번호를 다시 물어봐. 기록은 암호화된 <code>data.enc.json</code>에 있고 이 앱에는 평문이 들어 있지 않아.</div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabs">
+    <button data-view="record" class="on"><span class="i">✍️</span>기록</button>
+    <button data-view="calendar"><span class="i">📅</span>달력</button>
+    <button data-view="stats"><span class="i">📊</span>통계</button>
+  </nav>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   편두통 기록 · 암호화 버전
+   - 평문 기록은 HTML에 없다. ./data.enc.json (PBKDF2-SHA256 100,000 + AES-256-GCM) 을
+     비밀번호로 풀어서 쓴다.
+   - 이 기기에서 고친 내용은 localStorage 에 '변경분'으로만 쌓고, 복호화 결과와 id 기준 병합한다.
+   ============================================================ */
+
+const PATH_ENC   = './data.enc.json';
+const ITERATIONS = 100000;
+const LS_DELTA   = 'migraine_delta_v1';   // { overrides:{id:rec}, deleted:[id] }
+const LS_KEY     = 'migraine_key_v1';     // 기억한 AES 키(raw, base64)
+const FALLBACK   = { lat: 37.322, lon: 127.097 };  // 용인 수지구
+
+const enc = new TextEncoder();
+const dec = new TextDecoder();
+
+/* ---------- 작은 유틸 ---------- */
+const $  = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const hhmm = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const todayStr = () => ymd(new Date());
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),2000); }
+function uid(){ return 'app-' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function b64ToBytes(b64){ const bin=atob(b64); const u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u; }
+function bytesToB64(u){ let s=''; for(const b of u) s+=String.fromCharCode(b); return btoa(s); }
+
+/* ---------- 상태 ---------- */
+let base = [];                 // data.enc.json 복호화 결과
+let delta = { overrides:{}, deleted:[] };
+let records = [];              // 병합 결과
+let encryptedLoaded = false;
+let aesKey = null;             // 현재 세션 키
+let view = 'record';
+let calY, calM, selDate = null;
+let tick = null;
+
+/* ============================================================
+   암호화
+   ============================================================ */
+async function deriveKey(pw, salt, iterations=ITERATIONS){
+  const km = await crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name:'PBKDF2', salt, iterations, hash:'SHA-256' },
+    km, { name:'AES-GCM', length:256 }, true, ['encrypt','decrypt']
+  );
+}
+async function fetchEnc(){
+  const res = await fetch(PATH_ENC, { cache:'no-store' });
+  if(!res.ok) throw new Error('enc_not_found');
+  return res.json();
+}
+async function decryptWithKey(key, payload){
+  const iv = b64ToBytes(payload.iv);
+  const ct = b64ToBytes(payload.ciphertext);
+  const pt = await crypto.subtle.decrypt({ name:'AES-GCM', iv }, key, ct);
+  return JSON.parse(dec.decode(pt));
+}
+
+/* ============================================================
+   병합 / 저장
+   ============================================================ */
+function loadDelta(){
+  try{
+    const d = JSON.parse(localStorage.getItem(LS_DELTA) || '{}');
+    delta = { overrides: d.overrides || {}, deleted: Array.isArray(d.deleted) ? d.deleted : [] };
+  }catch(e){ delta = { overrides:{}, deleted:[] }; }
+}
+function saveDelta(){ localStorage.setItem(LS_DELTA, JSON.stringify(delta)); }
+
+function rebuild(){
+  const del = new Set(delta.deleted);
+  const out = [];
+  const seen = new Set();
+  for(const r of base){
+    if(del.has(r.id)) continue;
+    out.push(delta.overrides[r.id] ? Object.assign({}, r, delta.overrides[r.id]) : r);
+    seen.add(r.id);
+  }
+  for(const id in delta.overrides){
+    if(seen.has(id) || del.has(id)) continue;
+    out.push(delta.overrides[id]);
+  }
+  out.sort((a,b)=>{
+    const ka = (a.date||'') + ' ' + (a.start||'');
+    const kb = (b.date||'') + ' ' + (b.start||'');
+    return ka < kb ? 1 : ka > kb ? -1 : 0;
+  });
+  records = out;
+}
+function upsert(rec){
+  delta.overrides[rec.id] = rec;
+  delta.deleted = delta.deleted.filter(id => id !== rec.id);
+  saveDelta(); rebuild();
+}
+function remove(id){
+  delete delta.overrides[id];
+  if(base.some(r => r.id === id) && !delta.deleted.includes(id)) delta.deleted.push(id);
+  saveDelta(); rebuild();
+}
+const localCount = () => Object.keys(delta.overrides).length + delta.deleted.length;
+
+/* ============================================================
+   날짜 / 시간 계산
+   ============================================================ */
+const dateOf = r => (r.date || (r.start || '').slice(0,10) || '').slice(0,10);
+const startDT = r => r.start ? new Date(r.start) : null;
+const endDT   = r => r.end ? new Date(r.end) : null;
+function durationMin(r){
+  const s = startDT(r), e = endDT(r);
+  if(!s || !e) return null;
+  const m = Math.round((e - s) / 60000);
+  return m >= 0 ? m : null;
+}
+function fmtDur(min){
+  if(min === null || min === undefined) return '';
+  if(min < 60) return `${min}분`;
+  const h = Math.floor(min/60), m = min%60;
+  return m ? `${h}시간 ${m}분` : `${h}시간`;
+}
+function fmtElapsed(ms){
+  const total = Math.max(0, Math.floor(ms/60000));
+  const h = Math.floor(total/60), m = total%60;
+  return `${h}:${pad(m)}`;
+}
+const recordsOn = ds => records.filter(r => dateOf(r) === ds);
+const activeRec = () => records.filter(r => r.start && !r.end).sort((a,b)=> startDT(b)-startDT(a))[0] || null;
+
+/* ============================================================
+   날씨
+   ============================================================ */
+const WCODE = {
+  0:['☀️','맑음'], 1:['🌤️','대체로맑음'], 2:['⛅','구름조금'], 3:['☁️','흐림'],
+  45:['🌫️','안개'], 48:['🌫️','안개'],
+  51:['🌦️','이슬비'], 53:['🌦️','이슬비'], 55:['🌦️','이슬비'], 56:['🌧️','이슬비'], 57:['🌧️','이슬비'],
+  61:['🌧️','비'], 63:['🌧️','비'], 65:['🌧️','비'], 66:['🌧️','비'], 67:['🌧️','비'],
+  71:['🌨️','눈'], 73:['🌨️','눈'], 75:['❄️','눈'], 77:['❄️','눈'],
+  80:['🌦️','소나기'], 81:['🌧️','소나기'], 82:['⛈️','소나기'],
+  85:['🌨️','눈소나기'], 86:['🌨️','눈소나기'],
+  95:['⛈️','뇌우'], 96:['⛈️','뇌우'], 99:['⛈️','뇌우']
+};
+function wxLabel(code){ return (WCODE[code] || ['•','기타'])[1]; }
+function wxIcon(code){ return (WCODE[code] || ['•','기타'])[0]; }
+
+async function currentWeather(){
+  let coords = FALLBACK;
+  try{
+    if(navigator.geolocation){
+      coords = await new Promise((res, rej) => {
+        navigator.geolocation.getCurrentPosition(
+          p => res({ lat:p.coords.latitude, lon:p.coords.longitude }),
+          () => rej(new Error('denied')),
+          { timeout:6000, maximumAge:600000, enableHighAccuracy:false }
+        );
+      });
+    }
+  }catch(e){ coords = FALLBACK; }
+
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}`
+            + `&current=temperature_2m,weather_code,surface_pressure&timezone=Asia%2FSeoul`;
+  const r = await fetch(url, { cache:'no-store' });
+  if(!r.ok) throw new Error('weather_fail');
+  const j = await r.json();
+  const c = j.current || {};
+  return {
+    weather: wxLabel(c.weather_code),
+    weatherCode: c.weather_code ?? null,
+    temperature: (c.temperature_2m === null || c.temperature_2m === undefined) ? null : Math.round(c.temperature_2m*10)/10,
+    pressure: (c.surface_pressure === null || c.surface_pressure === undefined) ? null : Math.round(c.surface_pressure*10)/10
+  };
+}
+
+/* ============================================================
+   기록 화면
+   ============================================================ */
+function todayTarget(){
+  const act = activeRec();
+  if(act) return act;
+  const list = recordsOn(todayStr());
+  return list.length ? list[0] : null;
+}
+function ensureTodayRecord(){
+  const t = todayTarget();
+  if(t) return t;
+  const rec = { id:uid(), date:todayStr(), start:null, end:null,
+                medication:false, menstruation:false,
+                weather:null, temperature:null, pressure:null, note:'', source:'app' };
+  upsert(rec);
+  return rec;
+}
+
+function renderRecord(){
+  const now = new Date();
+  $('#nowText').textContent = `${now.getFullYear()}년 ${now.getMonth()+1}월 ${now.getDate()}일 ${['일','월','화','수','목','금','토'][now.getDay()]}요일 ${hhmm(now)}`;
+  const act = activeRec();
+  const target = todayTarget();
+  const todayList = recordsOn(todayStr());
+
+  $('#startBtn').hidden = !!act;
+  $('#stopBtn').hidden  = !act;
+  $('#timerBox').hidden = !act;
+
+  if(act){
+    $('#heroState').textContent = '두통 진행 중';
+    const s = startDT(act);
+    $('#heroSub').textContent = `${s.getMonth()+1}월 ${s.getDate()}일 ${hhmm(s)} 시작`;
+    $('#startBtn').hidden = true; $('#stopBtn').hidden = false;
+    updateTimer();
+  }else if(todayList.length){
+    $('#heroState').textContent = `오늘 ${todayList.length}건 기록됨`;
+    $('#heroSub').textContent = '다시 아프면 "두통 시작"을 눌러';
+  }else{
+    $('#heroState').textContent = '오늘 아직 기록 없음';
+    $('#heroSub').textContent = '아플 때 큰 버튼 하나만 누르면 돼';
+  }
+
+  const med = !!(target && target.medication);
+  const per = !!(target && target.menstruation);
+  $('#medBtn').classList.toggle('on', med);
+  $('#periodBtn').classList.toggle('on', per);
+  $('#medState').textContent = med ? '복용함' : '안 함';
+  $('#periodState').textContent = per ? '예' : '아니오';
+
+  $('#memo').value = (target && target.note) ? target.note.split('\n')[0] : '';
+
+  const w = act || target;
+  const wxBox = $('#wxBox');
+  if(w && (w.weather || w.pressure !== null && w.pressure !== undefined)){
+    const parts = [];
+    if(w.weather) parts.push(`${wxIcon(w.weatherCode)} ${w.weather}`);
+    if(w.temperature !== null && w.temperature !== undefined) parts.push(`${w.temperature}℃`);
+    if(w.pressure !== null && w.pressure !== undefined) parts.push(`${w.pressure}hPa`);
+    wxBox.innerHTML = parts.map(p => `<span>${p}</span>`).join('');
+  }else{
+    wxBox.innerHTML = '';
+  }
+
+  const si = [`${base.length}건 불러옴`];
+  if(localCount()) si.push(`이 기기 변경 ${localCount()}건`);
+  $('#syncInfo').textContent = encryptedLoaded ? si.join(' · ') : '암호화 데이터 없음 · 이 기기 기록만';
+}
+
+function updateTimer(){
+  const act = activeRec();
+  if(!act){ return; }
+  const s = startDT(act);
+  const ms = Date.now() - s.getTime();
+  const el = $('#timer');
+  el.innerHTML = `${fmtElapsed(ms)}<small> 경과</small>`;
+}
+
+async function onStart(){
+  const now = new Date();
+  const rec = {
+    id:uid(), date:ymd(now), start: now.toISOString(), end:null,
+    medication:false, menstruation:false,
+    weather:null, weatherCode:null, temperature:null, pressure:null, note:'', source:'app'
+  };
+  const todayList = recordsOn(todayStr());
+  const prev = todayList[0];
+  if(prev){ rec.medication = !!prev.medication; rec.menstruation = !!prev.menstruation; }
+  upsert(rec);
+  renderAll();
+  toast('시작 기록 저장 · 날씨 확인 중…');
+  try{
+    const w = await currentWeather();
+    const stored = records.find(r => r.id === rec.id);
+    if(stored){ stored.weather = w.weather; stored.weatherCode = w.weatherCode;
+                stored.temperature = w.temperature; stored.pressure = w.pressure;
+                upsert(stored); renderAll(); toast(`날씨 저장 · ${w.weather} ${w.temperature ?? ''}℃`); }
+  }catch(e){
+    toast('날씨는 못 가져왔어 (기록은 저장됨)');
+  }
+  if(tick) clearInterval(tick);
+  tick = setInterval(updateTimer, 30000);
+}
+
+function onStop(){
+  const act = activeRec();
+  if(!act) return;
+  const now = new Date();
+  const s = startDT(act);
+  if(now < s){ toast('시작 시각이 미래라 종료를 저장할 수 없어'); return; }
+  act.end = now.toISOString();
+  upsert(act);
+  renderAll();
+  toast(`종료 저장 · ${fmtDur(durationMin(act))} 지속`);
+}
+
+function onMed(){
+  const rec = ensureTodayRecord();
+  const fresh = records.find(r => r.id === rec.id) || rec;
+  fresh.medication = !fresh.medication;
+  upsert(fresh); renderAll();
+  toast(fresh.medication ? '💊 투약 표시' : '💊 투약 해제');
+}
+function onPeriod(){
+  const rec = ensureTodayRecord();
+  const fresh = records.find(r => r.id === rec.id) || rec;
+  fresh.menstruation = !fresh.menstruation;
+  upsert(fresh); renderAll();
+  toast(fresh.menstruation ? '🩸 생리여부 표시' : '🩸 생리여부 해제');
+}
+function onMemoSave(){
+  const txt = $('#memo').value.trim();
+  const rec = ensureTodayRecord();
+  const fresh = records.find(r => r.id === rec.id) || rec;
+  const firstLine = (fresh.note || '').split('\n')[0].trim();
+  if(firstLine === txt){ toast('변경 없음'); return; }   // 손대지 않고 눌렀을 때 기존 메모가 잘리지 않게
+  fresh.note = txt;
+  upsert(fresh); renderAll();
+  toast(txt ? '메모 저장' : '메모 지움');
+}
+
+/* 과거 기록 수동 추가 */
+function onManualSave(){
+  const d = $('#mDate').value;
+  if(!d){ toast('날짜를 골라 줘'); return; }
+  const t = $('#mTime').value;
+  const start = t ? `${d}T${t}:00` : null;
+  const rec = {
+    id:uid(), date:d, start, end:null,
+    medication: $('#mMed').checked,
+    menstruation: $('#mPeriod').checked,
+    weather:null, weatherCode:null, temperature:null, pressure:null,
+    note: $('#mNote').value.trim(), source:'manual'
+  };
+  upsert(rec);
+  $('#mNote').value = ''; $('#mMed').checked = false; $('#mPeriod').checked = false; $('#mTime').value = '';
+  renderAll();
+  toast(`${d} 기록 저장`);
+}
+
+/* ============================================================
+   달력
+   ============================================================ */
+function renderCalendar(){
+  $('#calTitle').textContent = `${calY}년 ${calM+1}월`;
+  const grid = $('#calGrid');
+  grid.innerHTML = '';
+  ['일','월','화','수','목','금','토'].forEach((d,i) => {
+    const el = document.createElement('div');
+    el.className = 'dow' + (i===0 ? ' sun' : '');
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+  const first = new Date(calY, calM, 1).getDay();
+  const days = new Date(calY, calM+1, 0).getDate();
+  for(let i=0;i<first;i++){
+    const e = document.createElement('div'); e.className='day empty'; grid.appendChild(e);
+  }
+  const monthPrefix = `${calY}-${pad(calM+1)}`;
+  let monthCount = 0;
+  for(let d=1; d<=days; d++){
+    const ds = `${monthPrefix}-${pad(d)}`;
+    const list = recordsOn(ds);
+    monthCount += list.length;
+    const med = list.some(r => r.medication);
+    const per = list.some(r => r.menstruation);
+    const cell = document.createElement('button');
+    cell.type = 'button';
+    cell.className = 'day' + (list.length ? ' has' : '') + (ds === todayStr() ? ' today' : '') + (ds === selDate ? ' sel' : '');
+    let inner = `<span>${d}</span>`;
+    const marks = [med ? '💊' : '', per ? '🩸' : ''].filter(Boolean).join('');
+    if(list.length > 1) inner += `<span class="n">${list.length}회</span>`;
+    if(marks) inner += `<span class="marks">${marks}</span>`;
+    else if(list.length === 1) inner += `<span class="ddot"></span>`;
+    cell.innerHTML = inner;
+    cell.onclick = () => { selDate = (selDate === ds) ? null : ds; renderCalendar(); renderDayDetail(); };
+    grid.appendChild(cell);
+  }
+  $('#monthTotal').textContent = monthCount;
+}
+
+function renderDayDetail(){
+  const box = $('#dayDetail');
+  if(!selDate){ box.innerHTML = '<div class="empty">날짜를 누르면 그날 기록이 여기에 보여.</div>'; return; }
+  const list = recordsOn(selDate);
+  const [y,m,d] = selDate.split('-').map(Number);
+  const wd = ['일','월','화','수','목','금','토'][new Date(y,m-1,d).getDay()];
+  let html = `<div class="dhead"><div class="dt">${y}년 ${m}월 ${d}일 (${wd}) · ${list.length}건</div>
+    <button class="add" data-add="${selDate}">+ 이 날짜에 추가</button></div>`;
+  if(!list.length){
+    html += '<div class="empty">이 날은 기록이 없어.</div>';
+  }else{
+    for(const r of list){
+      const tm = r.start ? hhmm(startDT(r)) : '시간 미기록';
+      const dur = fmtDur(durationMin(r));
+      const meta = [];
+      if(dur) meta.push(`<i>⏱ ${dur}</i>`);
+      if(r.weather) meta.push(`<i>${wxIcon(r.weatherCode)} ${r.weather} ${r.temperature ?? ''}℃</i>`);
+      if(r.pressure !== null && r.pressure !== undefined) meta.push(`<i>${r.pressure}hPa</i>`);
+      const noteId = 'n_' + r.id.replace(/[^a-zA-Z0-9_-]/g,'');
+      html += `<div class="rec" data-rec="${r.id}">
+        <div class="top">
+          <div class="tm">${tm}${r.end ? ' ~ ' + hhmm(endDT(r)) : (r.start ? ' · 진행 중' : '')}</div>
+          <button class="del" data-del="${r.id}">삭제</button>
+        </div>
+        ${meta.length ? `<div class="meta">${meta.join('')}</div>` : ''}
+        <textarea class="noteedit" id="${noteId}" rows="2" placeholder="메모">${(r.note||'').replace(/</g,'&lt;')}</textarea>
+        <div class="tog">
+          <button data-tmed="${r.id}" class="${r.medication?'on':''}">💊 투약</button>
+          <button data-tper="${r.id}" class="${r.menstruation?'on blood':''}">🩸 생리</button>
+          <button data-savenote="${r.id}">메모 저장</button>
+          ${r.notionUrl ? `<a href="${r.notionUrl}" target="_blank" rel="noopener" style="font-size:12px;padding:6px 10px;border-radius:999px;background:#f1f2f7;color:#6b7280;text-decoration:none">노션 원본 ↗</a>` : ''}
+        </div>
+      </div>`;
+    }
+  }
+  box.innerHTML = html;
+
+  $$('[data-del]', box).forEach(b => b.onclick = () => {
+    if(!confirm('이 기록을 삭제할까?')) return;
+    remove(b.dataset.del); renderAll(); toast('삭제됐어');
+  });
+  $$('[data-tmed]', box).forEach(b => b.onclick = () => {
+    const r = records.find(x => x.id === b.dataset.tmed); if(!r) return;
+    r.medication = !r.medication; upsert(r); renderAll();
+  });
+  $$('[data-tper]', box).forEach(b => b.onclick = () => {
+    const r = records.find(x => x.id === b.dataset.tper); if(!r) return;
+    r.menstruation = !r.menstruation; upsert(r); renderAll();
+  });
+  $$('[data-savenote]', box).forEach(b => b.onclick = () => {
+    const r = records.find(x => x.id === b.dataset.savenote); if(!r) return;
+    const ta = $('#n_' + r.id.replace(/[^a-zA-Z0-9_-]/g,''));
+    r.note = (ta.value || '').trim(); upsert(r); renderAll(); toast('메모 저장');
+  });
+  $$('[data-add]', box).forEach(b => b.onclick = () => {
+    $('#manualBox').open = true;
+    $('#mDate').value = b.dataset.add;
+    switchView('record');
+    $('#mNote').focus();
+  });
+}
+
+/* ============================================================
+   통계
+   ============================================================ */
+function pct(a,b){ return b ? Math.round(a/b*1000)/10 : null; }
+function pctText(v){ return v === null ? '-' : `${v}%`; }
+
+function renderStats(){
+  const now = new Date();
+  const curPrefix = `${now.getFullYear()}-${pad(now.getMonth()+1)}`;
+  const total = records.length;
+  $('#stTotal').textContent = total;
+  $('#stMonth').textContent = records.filter(r => dateOf(r).startsWith(curPrefix)).length;
+
+  // 최근 3개월(이번 달 포함) 월평균
+  const months = [];
+  for(let i=0;i<3;i++){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    months.push(`${d.getFullYear()}-${pad(d.getMonth()+1)}`);
+  }
+  const in3 = records.filter(r => months.some(m => dateOf(r).startsWith(m))).length;
+  $('#stAvg3').innerHTML = (Math.round(in3/3*10)/10) + '<small>회</small>';
+
+  // 평균 지속시간
+  const durs = records.map(durationMin).filter(v => v !== null);
+  if(durs.length){
+    const avg = Math.round(durs.reduce((a,b)=>a+b,0)/durs.length);
+    $('#stDur').textContent = fmtDur(avg);
+  }else{
+    $('#stDur').textContent = '-';
+  }
+
+  // 비율
+  const medN = records.filter(r => r.medication).length;
+  const perN = records.filter(r => r.menstruation).length;
+  $('#stMed').textContent = pctText(pct(medN, total));
+  $('#stPeriod').textContent = pctText(pct(perN, total));
+
+  // 날씨별 분포
+  const wxRecs = records.filter(r => r.weather);
+  const tally = {};
+  for(const r of wxRecs) tally[r.weather] = (tally[r.weather] || 0) + 1;
+  const rows = Object.entries(tally).sort((a,b)=>b[1]-a[1]);
+  const max = rows.length ? rows[0][1] : 1;
+  $('#wxBars').innerHTML = rows.length
+    ? rows.map(([k,v]) => `<div class="bar"><div class="bl">${k}</div>
+        <div class="bt"><div class="bf" style="width:${Math.round(v/max*100)}%"></div></div>
+        <div class="bc">${v}회</div></div>`).join('')
+    : '<div class="empty">날씨가 기록된 건이 아직 없어.</div>';
+  $('#wxHint').textContent = wxRecs.length
+    ? `날씨 데이터가 있는 ${wxRecs.length}건 기준 (전체 ${total}건)`
+    : '새로 기록하면 날씨·기압이 자동으로 붙어.';
+
+  // 기압대 분포
+  const pr = records.filter(r => typeof r.pressure === 'number');
+  const bands = [
+    ['1000hPa 이하', x => x <= 1000],
+    ['1000~1010', x => x > 1000 && x <= 1010],
+    ['1010~1020', x => x > 1010 && x <= 1020],
+    ['1020 초과', x => x > 1020]
+  ];
+  if(pr.length){
+    const counts = bands.map(([label, f]) => [label, pr.filter(r => f(r.pressure)).length]);
+    const mx = Math.max(...counts.map(c => c[1]), 1);
+    $('#pressBars').innerHTML = counts.map(([label, v]) => `<div class="bar"><div class="bl">${label}</div>
+      <div class="bt"><div class="bf" style="width:${Math.round(v/mx*100)}%"></div></div>
+      <div class="bc">${v}회</div></div>`).join('');
+  }else{
+    $('#pressBars').innerHTML = '<div class="empty">기압 데이터가 아직 없어.</div>';
+  }
+
+  $('#dataHint').textContent =
+    `전체 ${total}건 · 이 기기에서 바꾼 기록 ${localCount()}건 · 평균 지속시간은 시작과 종료가 모두 있는 ${durs.length}건 기준.`;
+  $('#remember2').checked = !!localStorage.getItem(LS_KEY);
+  $('#remember').checked = !!localStorage.getItem(LS_KEY);
+}
+
+/* ============================================================
+   내보내기 / 가져오기
+   ============================================================ */
+function download(name, text, type){
+  const blob = new Blob([text], { type });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+function exportJSON(){
+  download(`편두통기록_${todayStr()}.json`, JSON.stringify(records, null, 2), 'application/json');
+}
+function exportCSV(){
+  const head = ['날짜','시작','종료','지속(분)','투약','생리여부','날씨','기온(℃)','기압(hPa)','메모'];
+  const q = v => `"${String(v ?? '').replace(/"/g,'""')}"`;
+  const lines = [head.join(',')];
+  for(const r of records){
+    lines.push([dateOf(r), r.start?hhmm(startDT(r)):'', r.end?hhmm(endDT(r)):'',
+      durationMin(r) ?? '', r.medication?'O':'', r.menstruation?'O':'',
+      r.weather ?? '', r.temperature ?? '', r.pressure ?? '',
+      (r.note || '').replace(/\n/g,' ')].map(q).join(','));
+  }
+  download(`편두통기록_${todayStr()}.csv`, '\uFEFF' + lines.join('\r\n'), 'text/csv;charset=utf-8');
+}
+function importJSON(file){
+  const fr = new FileReader();
+  fr.onload = () => {
+    try{
+      const data = JSON.parse(fr.result);
+      if(!Array.isArray(data)) throw new Error('array');
+      let n = 0;
+      for(const raw of data){
+        if(!raw || !raw.date) continue;
+        const rec = {
+          id: raw.id || uid(),
+          date: String(raw.date).slice(0,10),
+          start: raw.start || null, end: raw.end || null,
+          medication: !!raw.medication, menstruation: !!raw.menstruation,
+          weather: raw.weather ?? null, weatherCode: raw.weatherCode ?? null,
+          temperature: raw.temperature ?? null, pressure: raw.pressure ?? null,
+          note: raw.note || '', source: raw.source || 'import'
+        };
+        delta.overrides[rec.id] = rec; n++;
+      }
+      saveDelta(); rebuild(); renderAll();
+      toast(`${n}건 가져왔어`);
+    }catch(e){ toast('JSON 파일을 읽지 못했어'); }
+  };
+  fr.readAsText(file);
+}
+
+/* ============================================================
+   화면 전환 / 잠금
+   ============================================================ */
+function switchView(name){
+  view = name;
+  ['record','calendar','stats'].forEach(v => $('#view-' + v).hidden = (v !== name));
+  $$('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.view === name));
+  if(name === 'calendar'){ renderCalendar(); renderDayDetail(); }
+  if(name === 'stats') renderStats();
+  if(name === 'record') renderRecord();
+}
+function renderAll(){
+  renderRecord();
+  if(view === 'calendar'){ renderCalendar(); renderDayDetail(); }
+  if(view === 'stats') renderStats();
+}
+
+function forgetKey(){
+  localStorage.removeItem(LS_KEY);
+  $('#remember').checked = false;
+  $('#remember2').checked = false;
+}
+function lock(){
+  aesKey = null; base = []; records = []; encryptedLoaded = false;
+  if(tick){ clearInterval(tick); tick = null; }
+  $('#app').hidden = true;
+  $('#lock').hidden = false;
+  $('#pw').value = '';
+  $('#lockErr').textContent = '';
+  $('#pw').focus();
+}
+
+/* ============================================================
+   부팅
+   ============================================================ */
+async function boot(){
+  loadDelta();
+  calY = new Date().getFullYear();
+  calM = new Date().getMonth();
+  $('#mDate').value = todayStr();
+
+  // 기억한 열쇠가 있으면 비밀번호 없이 열기
+  const saved = localStorage.getItem(LS_KEY);
+  $('#remember').checked = !!saved;
+  if(saved){
+    const box = $('#lockAlt');
+    box.textContent = '이 기기에 기억된 열쇠로 여는 중…';
+    try{
+      const payload = await fetchEnc();
+      const key = await crypto.subtle.importKey('raw', b64ToBytes(saved), 'AES-GCM', true, ['decrypt']);
+      const arr = await decryptWithKey(key, payload);
+      aesKey = key; base = Array.isArray(arr) ? arr : []; encryptedLoaded = true;
+      box.textContent = '';
+      enterApp();
+      return;
+    }catch(e){
+      if(e.message === 'enc_not_found'){
+        box.innerHTML = '암호화 데이터(<code>data.enc.json</code>)가 없어서 <b>빈 기록</b>으로 시작해. 새 기록은 이 기기에만 저장돼.';
+        encryptedLoaded = false;
+        enterApp(true);
+        return;
+      }
+      forgetKey();
+      box.textContent = '기억된 열쇠가 맞지 않아. 비밀번호를 다시 입력해 줘.';
+    }
+  }
+
+  // data.enc.json 자체가 없으면 (로컬에서 단독으로 열었을 때) 빈 배열 폴백
+  try{
+    const probe = await fetch(PATH_ENC, { method:'HEAD', cache:'no-store' });
+    if(!probe.ok) throw new Error('none');
+  }catch(e){
+    $('#lockAlt').innerHTML = '암호화 데이터(<code>data.enc.json</code>)를 못 찾았어. 비밀번호 없이 <b>빈 기록</b>으로 시작할 수 있어.';
+    const btn = $('#unlockBtn');
+    btn.textContent = '빈 기록으로 시작';
+    btn.onclick = () => { encryptedLoaded = false; base = []; enterApp(true); };
+    return;
+  }
+  $('#pw').focus();
+}
+
+async function unlock(){
+  const pw = $('#pw').value;
+  const btn = $('#unlockBtn');
+  if(!pw){ $('#lockErr').textContent = '비밀번호를 입력해 줘'; return; }
+  btn.disabled = true;
+  $('#lockErr').textContent = '';
+  try{
+    const payload = await fetchEnc();
+    const key = await deriveKey(pw, b64ToBytes(payload.salt), payload.iterations || ITERATIONS);
+    const arr = await decryptWithKey(key, payload);
+    aesKey = key;
+    base = Array.isArray(arr) ? arr : [];
+    encryptedLoaded = true;
+    if($('#remember').checked){
+      const raw = await crypto.subtle.exportKey('raw', key);
+      localStorage.setItem(LS_KEY, bytesToB64(new Uint8Array(raw)));
+    }else{
+      localStorage.removeItem(LS_KEY);
+    }
+    enterApp();
+  }catch(e){
+    if(e.message === 'enc_not_found'){
+      encryptedLoaded = false; base = [];
+      enterApp(true);
+    }else{
+      $('#lockErr').textContent = '비밀번호가 맞지 않아';
+      $('#pw').select();
+    }
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+function enterApp(noData=false){
+  $('#lock').hidden = true;
+  $('#app').hidden = false;
+  $('#pw').value = '';
+  rebuild();
+  switchView('record');
+  renderAll();
+  if(noData && !base.length && !localCount()) toast('빈 기록으로 시작해');
+}
+
+/* ---------- 이벤트 ---------- */
+$('#unlockBtn').onclick = unlock;
+$('#pw').addEventListener('keydown', e => { if(e.key === 'Enter') unlock(); });
+$('#relockBtn').onclick = () => { if(confirm('잠글까? (다시 열 때 비밀번호가 필요해)')) lock(); };
+$('#startBtn').onclick = onStart;
+$('#stopBtn').onclick = onStop;
+$('#medBtn').onclick = onMed;
+$('#periodBtn').onclick = onPeriod;
+$('#memoSave').onclick = onMemoSave;
+$('#memo').addEventListener('keydown', e => { if(e.key === 'Enter') onMemoSave(); });
+$('#mSave').onclick = onManualSave;
+$('#prevM').onclick = () => { calM--; if(calM < 0){ calM = 11; calY--; } renderCalendar(); renderDayDetail(); };
+$('#nextM').onclick = () => { calM++; if(calM > 11){ calM = 0; calY++; } renderCalendar(); renderDayDetail(); };
+$$('nav.tabs button').forEach(b => b.onclick = () => switchView(b.dataset.view));
+$('#expJson').onclick = exportJSON;
+$('#expCsv').onclick = exportCSV;
+$('#impJson').onchange = e => { const f = e.target.files[0]; if(f) importJSON(f); e.target.value = ''; };
+$('#remember2').onchange = async e => {
+  if(e.target.checked && aesKey){
+    const raw = await crypto.subtle.exportKey('raw', aesKey);
+    localStorage.setItem(LS_KEY, bytesToB64(new Uint8Array(raw)));
+    $('#remember').checked = true;
+    toast('이 기기에서 기억함');
+  }else{
+    forgetKey();
+    toast('기억 해제');
+  }
+};
+
+setInterval(() => { if(!$('#app').hidden && view === 'record') { $('#nowText').textContent = (() => { const n=new Date(); return `${n.getFullYear()}년 ${n.getMonth()+1}월 ${n.getDate()}일 ${['일','월','화','수','목','금','토'][n.getDay()]}요일 ${hhmm(n)}`; })(); updateTimer(); } }, 30000);
+
+boot();
+</script>
+</body>
+</html>
