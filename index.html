@@ -634,22 +634,22 @@ function pickHour(j, when){
   };
 }
 
-/* 지정한 시각의 날씨·기온·기압 (지난 날짜는 archive, 최근은 forecast) */
-async function fetchWeatherAt(when){
+/* 지정한 날짜(D)와 그 다음날(D+1)을 한 번에 받는다 (지난 날짜는 archive, 최근은 forecast) */
+async function fetchWeatherJson(ds){
   const coords = await getCoords();
-  const ds = ymd(when);
   const q = `latitude=${coords.lat}&longitude=${coords.lon}`
-          + `&start_date=${ds}&end_date=${ds}`
-          + `&hourly=temperature_2m,weather_code,surface_pressure&timezone=Asia%2FSeoul`;
+          + `&start_date=${ds}&end_date=${addDays(ds, 1)}`
+          + `&hourly=temperature_2m,weather_code,surface_pressure`
+          + `&daily=weather_code,precipitation_sum,temperature_2m_max,temperature_2m_min,temperature_2m_mean`
+          + `&timezone=Asia%2FSeoul`;
   for(const u of wxUrls(ds, q)){
     try{
       const r = await fetch(u, { cache:'no-store' });
       if(!r.ok) continue;
-      const got = pickHour(await r.json(), when);
-      if(got) return got;
+      return await r.json();
     }catch(e){ /* 다음 경로 시도 */ }
   }
-  throw new Error('weather_fail');
+  return null;
 }
 /* 지난 날짜는 archive(이미 저장된 값과 같은 출처) 우선, 오늘·최근은 forecast 우선.
    archive 는 약 5일치 지연이 있어서 최근 날짜는 forecast 로 받는다. */
@@ -697,39 +697,43 @@ function daySummary(j, ds){
     isSnow: SNOW_CODES.indexOf(code) >= 0,
     tempMax: d.temperature_2m_max ? d.temperature_2m_max[i] : null,
     tempMin: d.temperature_2m_min ? d.temperature_2m_min[i] : null,
+    temperature: (d.temperature_2m_mean && typeof d.temperature_2m_mean[i] === 'number')
+      ? Math.round(d.temperature_2m_mean[i]*10)/10
+      : ((d.temperature_2m_max && d.temperature_2m_min
+          && typeof d.temperature_2m_max[i] === 'number' && typeof d.temperature_2m_min[i] === 'number')
+          ? Math.round((d.temperature_2m_max[i] + d.temperature_2m_min[i])/2*10)/10 : null),
     pressure: meanPressure(j, ds)
   };
 }
-/* D일과 D+1일을 한 요청으로 받아 다음날 요약 + 기압 변화를 만든다 */
-async function fetchNextDay(ds){
-  const coords = await getCoords();
-  const d2 = addDays(ds, 1);
-  const q = `latitude=${coords.lat}&longitude=${coords.lon}`
-          + `&start_date=${ds}&end_date=${d2}`
-          + `&daily=weather_code,precipitation_sum,temperature_2m_max,temperature_2m_min`
-          + `&hourly=surface_pressure&timezone=Asia%2FSeoul`;
-  for(const u of wxUrls(ds, q)){
-    try{
-      const r = await fetch(u, { cache:'no-store' });
-      if(!r.ok) continue;
-      const j = await r.json();
-      const nx = daySummary(j, d2);
-      if(!nx) continue;
-      const day = daySummary(j, ds);
-      nx.pressureDelta = (nx.pressure !== null && day && day.pressure !== null)
-        ? Math.round((nx.pressure - day.pressure) * 10) / 10 : null;
-      return nx;
-    }catch(e){ /* 다음 경로 시도 */ }
+/* 응답 하나로 당일(시각이 있으면 그 시각, 없으면 하루 평균) + 다음날 요약을 만든다 */
+function bundleFromJson(j, ds, when){
+  const out = { day:null, next:null };
+  if(!j) return out;
+  const daySum = daySummary(j, ds);
+  if(when){
+    const got = pickHour(j, when);
+    if(got && got.weather !== null) out.day = got;
   }
-  return null;
+  if(!out.day && daySum){
+    out.day = { weather: daySum.weather, weatherCode: daySum.weatherCode,
+                temperature: daySum.temperature, pressure: daySum.pressure };
+  }
+  const nx = daySummary(j, addDays(ds, 1));
+  if(nx){
+    nx.pressureDelta = (nx.pressure !== null && daySum && daySum.pressure !== null)
+      ? Math.round((nx.pressure - daySum.pressure) * 10) / 10 : null;
+    out.next = nx;
+  }
+  return out;
 }
-/* 당일(그 시각) + 다음날(일 단위)을 함게 */
+/* 시각이 있는 기록: 그 시각의 당일 날씨 + 다음날 날씨 */
 async function fetchWeatherBundle(when){
   const ds = ymd(when);
-  const out = { day:null, next:null };
-  try{ out.day = await fetchWeatherAt(when); }catch(e){}
-  try{ out.next = await fetchNextDay(ds); }catch(e){}
-  return out;
+  return bundleFromJson(await fetchWeatherJson(ds), ds, when);
+}
+/* 날짜만 있는 기록: 하루 평균 당일 날씨 + 다음날 날씨 (저장된 기존 기록과 같은 기준) */
+async function fetchDateBundle(ds){
+  return bundleFromJson(await fetchWeatherJson(ds), ds, null);
 }
 function nxLabel(nw, withPress){
   if(!nw || !nw.weather) return '';
@@ -1002,18 +1006,19 @@ function renderEditWx(){
 }
 
 async function lookupEditWeather(){
-  const v = $('#eStart').value || (($('#eDate').value || todayStr()) + 'T12:00');
-  const when = new Date(v);
-  if(isNaN(when)){ toast('시작 시각을 확인해 줘'); return; }
+  const sv = $('#eStart').value;
+  const dsv = $('#eDate').value || todayStr();
+  const when = sv ? new Date(sv) : null;
+  if(sv && isNaN(when)){ toast('시작 시각을 확인해 줘'); return; }
   const btn = $('#eWxBtn');
   btn.disabled = true;
   const keep = editWx, keepStart = editWxStart;
   btn.textContent = '조회 중…';
   try{
-    const b = await fetchWeatherBundle(when);
+    const b = sv ? await fetchWeatherBundle(when) : await fetchDateBundle(dsv);
     if(!b.day && !b.next) throw new Error('none');
     editWx = { day: b.day || keep.day, next: b.next || null };
-    editWxStart = $('#eStart').value || v;
+    editWxStart = sv || null;
     renderEditWx();
     toast(b.next ? '당일·다음날 날씨 가져왔어' : '당일 날씨만 가져왔어');
   }catch(e){
@@ -1065,7 +1070,7 @@ async function saveEdit(){
   toast(`저장됨 · ${Number(date.slice(5,7))}/${Number(date.slice(8,10))}${end ? ' · ' + fmtDur(durationMin(rec)) : ''}`);
   if(needWx){
     try{
-      const b = start ? await fetchWeatherBundle(new Date(start)) : { day:null, next: await fetchNextDay(date) };
+      const b = start ? await fetchWeatherBundle(new Date(start)) : await fetchDateBundle(date);
       const stored = records.find(r => r.id === rec.id);
       if(stored && (b.day || b.next)){
         if(b.day) Object.assign(stored, b.day);
