@@ -96,6 +96,7 @@
 
   .wx{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px}
   .wx span{font-size:12px;color:#374151;background:#f1f2f7;border-radius:999px;padding:5px 10px}
+  .wx span.nx{background:#e3edff;color:#25459b;font-weight:700}
 
   details.manual{background:var(--card);border-radius:var(--radius);padding:0;margin-bottom:12px;box-shadow:0 1px 2px rgba(16,18,45,.05)}
   details.manual summary{padding:14px 16px;font-size:13px;color:var(--muted);font-weight:600;list-style:none;cursor:pointer}
@@ -166,6 +167,11 @@
   .stat .v{font-size:24px;font-weight:800;letter-spacing:-.6px;color:#1f1b4b}
   .stat .v small{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:0;margin-left:2px}
   .stat .k{font-size:12px;color:var(--muted);margin-top:3px}
+  .stat.nx{background:linear-gradient(135deg,#eef2ff,#e6f1ff)}
+  .stat.nx .v{color:#1d3f9e}
+  .stat.nx .k{color:#3b4a7a}
+  .stat .cmp{font-size:11.5px;color:#4b5563;margin-top:8px;line-height:1.75}
+  .stat .cmp b{color:#1d3f9e}
   .bars{display:flex;flex-direction:column;gap:8px}
   .bar{display:grid;grid-template-columns:64px 1fr 44px;align-items:center;gap:8px;font-size:12px}
   .bar .bl{color:#4b5563;white-space:nowrap}
@@ -354,6 +360,11 @@
     <!-- 통계 -->
     <section id="view-stats" hidden>
       <div class="stat-grid">
+        <div class="stat nx wide">
+          <div class="v" id="stNxPct">-</div>
+          <div class="k">🌧️ 비 오기 전날(다음날 비·눈) <span id="stNxCnt"></span></div>
+          <div class="cmp" id="stNxCmp"></div>
+        </div>
         <div class="stat"><div class="v" id="stMonth">0</div><div class="k">이번 달 횟수</div></div>
         <div class="stat"><div class="v" id="stAvg3">-</div><div class="k">최근 3개월 월평균</div></div>
         <div class="stat"><div class="v" id="stTotal">0</div><div class="k">전체 누적</div></div>
@@ -362,7 +373,12 @@
         <div class="stat"><div class="v" id="stPeriod">-</div><div class="k">생리 연관 비율</div></div>
       </div>
       <div class="card">
-        <h2>날씨별 분포</h2>
+        <h2>다음날 날씨별 분포</h2>
+        <div class="bars" id="nxBars"></div>
+        <div class="hint" id="nxHint"></div>
+      </div>
+      <div class="card">
+        <h2>날씨별 분포 (당일)</h2>
         <div class="bars" id="wxBars"></div>
         <div class="hint" id="wxHint"></div>
       </div>
@@ -639,6 +655,90 @@ async function fetchWeatherAt(when){
   throw new Error('weather_fail');
 }
 
+/* ---------- 하루 단위 요약 (다음날 D+1 날씨용) ---------- */
+const PRECIP_CODES = new Set([51,53,55,56,57,61,63,65,66,67,71,73,75,77,80,81,82,85,86,95,96,99]);
+const SNOW_CODES   = [71,73,75,77,85,86];
+const RAINY_LABELS = ['비','이슬비','소나기','뇌우','눈','눈소나기'];
+function addDays(ds, n){
+  const [y,m,d] = String(ds).split('-').map(Number);
+  return ymd(new Date(y, m-1, d + n));
+}
+function meanPressure(j, ds){
+  const h = j && j.hourly;
+  if(!h || !Array.isArray(h.time) || !Array.isArray(h.surface_pressure)) return null;
+  const i = h.time.indexOf(`${ds}T00:00`);
+  if(i < 0) return null;
+  const vals = h.surface_pressure.slice(i, i + 24).filter(v => typeof v === 'number');
+  if(!vals.length) return null;
+  return Math.round(vals.reduce((a,b)=>a+b,0) / vals.length * 10) / 10;
+}
+/* daily 응답에서 하루치 요약(날씨·아이콘·강수량·비/눈 여부·기온·평균기압) */
+function daySummary(j, ds){
+  const d = j && j.daily;
+  if(!d || !Array.isArray(d.time)) return null;
+  const i = d.time.indexOf(ds);
+  if(i < 0) return null;
+  const code = (d.weather_code && d.weather_code[i] !== undefined && d.weather_code[i] !== null) ? d.weather_code[i] : null;
+  const mm   = (d.precipitation_sum && d.precipitation_sum[i] !== undefined) ? d.precipitation_sum[i] : null;
+  return {
+    date: ds,
+    weather: code === null ? null : wxLabel(code),
+    weatherCode: code,
+    icon: code === null ? '•' : wxIcon(code),
+    precipMm: (mm === null || mm === undefined) ? null : Math.round(mm*10)/10,
+    isPrecip: (code !== null && PRECIP_CODES.has(code)) || (typeof mm === 'number' && mm >= 1),
+    isSnow: SNOW_CODES.indexOf(code) >= 0,
+    tempMax: d.temperature_2m_max ? d.temperature_2m_max[i] : null,
+    tempMin: d.temperature_2m_min ? d.temperature_2m_min[i] : null,
+    pressure: meanPressure(j, ds)
+  };
+}
+/* D일과 D+1일을 한 요청으로 받아 다음날 요약 + 기압 변화를 만든다 */
+async function fetchNextDay(ds){
+  const coords = await getCoords();
+  const d2 = addDays(ds, 1);
+  const q = `latitude=${coords.lat}&longitude=${coords.lon}`
+          + `&start_date=${ds}&end_date=${d2}`
+          + `&daily=weather_code,precipitation_sum,temperature_2m_max,temperature_2m_min`
+          + `&hourly=surface_pressure&timezone=Asia%2FSeoul`;
+  const daysAgo = (Date.now() - new Date(ds + 'T12:00').getTime()) / 86400000;
+  const urls = [];
+  if(daysAgo <= 90 && daysAgo >= -10) urls.push('https://api.open-meteo.com/v1/forecast?' + q);
+  urls.push('https://archive-api.open-meteo.com/v1/archive?' + q);
+  for(const u of urls){
+    try{
+      const r = await fetch(u, { cache:'no-store' });
+      if(!r.ok) continue;
+      const j = await r.json();
+      const nx = daySummary(j, d2);
+      if(!nx) continue;
+      const day = daySummary(j, ds);
+      nx.pressureDelta = (nx.pressure !== null && day && day.pressure !== null)
+        ? Math.round((nx.pressure - day.pressure) * 10) / 10 : null;
+      return nx;
+    }catch(e){ /* 다음 경로 시도 */ }
+  }
+  return null;
+}
+/* 당일(그 시각) + 다음날(일 단위)을 함게 */
+async function fetchWeatherBundle(when){
+  const ds = ymd(when);
+  const out = { day:null, next:null };
+  try{ out.day = await fetchWeatherAt(when); }catch(e){}
+  try{ out.next = await fetchNextDay(ds); }catch(e){}
+  return out;
+}
+function nxLabel(nw, withPress){
+  if(!nw || !nw.weather) return '';
+  const ic = nw.icon || wxIcon(nw.weatherCode);
+  const mm = (typeof nw.precipMm === 'number' && nw.precipMm >= 0.1) ? ` ${nw.precipMm}mm` : '';
+  let s = `내일 ${ic}${nw.weather}${mm}`;
+  if(withPress && typeof nw.pressureDelta === 'number' && Math.abs(nw.pressureDelta) >= 1){
+    s += ` · 기압 ${nw.pressureDelta > 0 ? '+' : ''}${nw.pressureDelta}`;
+  }
+  return s;
+}
+
 /* ============================================================
    기록 화면
    ============================================================ */
@@ -732,15 +832,17 @@ function renderRecord(){
 
   const w = act || target;
   const wxBox = $('#wxBox');
+  const parts = [];
   if(w && (w.weather || (w.pressure !== null && w.pressure !== undefined))){
-    const parts = [];
     if(w.weather) parts.push(`${wxIcon(w.weatherCode)} ${w.weather}`);
     if(w.temperature !== null && w.temperature !== undefined) parts.push(`${w.temperature}℃`);
     if(w.pressure !== null && w.pressure !== undefined) parts.push(`${w.pressure}hPa`);
-    wxBox.innerHTML = parts.map(p => `<span>${p}</span>`).join('');
-  }else{
-    wxBox.innerHTML = '';
   }
+  let wxHtml = parts.map(p => `<span>${p}</span>`).join('');
+  if(w && w.nextWeather && w.nextWeather.weather){
+    wxHtml += `<span class="nx">${esc(nxLabel(w.nextWeather))}</span>`;
+  }
+  wxBox.innerHTML = wxHtml;
 
   const si = [`${base.length}건 불러옴`];
   if(localCount()) si.push(`이 기기 변경 ${localCount()}건`);
@@ -781,13 +883,15 @@ async function onStart(){
   if(endD || when.getTime() < Date.now() - 60000) setNowDefaults(true);
 
   try{
-    const w = await fetchWeatherAt(when);
+    const b = await fetchWeatherBundle(when);
     const stored = records.find(r => r.id === rec.id);
-    if(stored){
-      Object.assign(stored, w);
+    if(stored && (b.day || b.next)){
+      if(b.day) Object.assign(stored, b.day);
+      if(b.next) stored.nextWeather = b.next;
       upsert(stored); renderAll();
-      const wxTxt = [w.weather, (w.temperature !== null && w.temperature !== undefined) ? w.temperature + '℃' : ''].filter(Boolean).join(' ');
-      toast(`날씨 저장 · ${wxTxt || '기압만'}`);
+      const d = b.day || {};
+      const wxTxt = [d.weather, (d.temperature !== null && d.temperature !== undefined) ? d.temperature + '℃' : ''].filter(Boolean).join(' ');
+      toast(`날씨 저장 · ${wxTxt || '기압만'}${b.next ? ' · 다음날 ' + b.next.weather : ''}`);
     }
   }catch(e){
     toast('날씨는 못 가져왔어 (기록은 저장됨)');
@@ -844,8 +948,9 @@ function openEdit(id, presetDate){
   const b = rec || { date: presetDate || todayStr(), start:null, end:null,
                      medication:false, menstruation:false,
                      weather:null, weatherCode:null, temperature:null, pressure:null, note:'' };
-  editWx = { weather: b.weather ?? null, weatherCode: b.weatherCode ?? null,
-             temperature: b.temperature ?? null, pressure: b.pressure ?? null };
+  editWx = { day: { weather: b.weather ?? null, weatherCode: b.weatherCode ?? null,
+                    temperature: b.temperature ?? null, pressure: b.pressure ?? null },
+             next: b.nextWeather || null };
   editWxStart = b.start || null;
   $('#sheetTitle').textContent = rec ? '기록 수정' : '새 기록';
   $('#eStart').value = toLocalValue(b.start);
@@ -882,11 +987,15 @@ function syncWxBtn(){
   btn.textContent = (editWxStart && cur && !sameLocal(editWxStart, cur)) ? '이 시각으로 다시 조회' : '날씨 조회';
 }
 function renderEditWx(){
+  const d = (editWx && editWx.day) || {};
   const parts = [];
-  if(editWx.weather) parts.push(`${wxIcon(editWx.weatherCode)} ${editWx.weather}`);
-  if(editWx.temperature !== null && editWx.temperature !== undefined) parts.push(`${editWx.temperature}℃`);
-  if(editWx.pressure !== null && editWx.pressure !== undefined) parts.push(`${editWx.pressure}hPa`);
-  $('#eWx').textContent = parts.length ? parts.join(' · ') : '날씨 없음';
+  if(d.weather) parts.push(`${wxIcon(d.weatherCode)} ${d.weather}`);
+  if(d.temperature !== null && d.temperature !== undefined) parts.push(`${d.temperature}℃`);
+  if(d.pressure !== null && d.pressure !== undefined) parts.push(`${d.pressure}hPa`);
+  let txt = parts.length ? parts.join(' · ') : '날씨 없음';
+  const nx = editWx && editWx.next;
+  if(nx && nx.weather) txt += ` · ${nxLabel(nx, true)}`;
+  $('#eWx').textContent = txt;
 }
 
 async function lookupEditWeather(){
@@ -898,10 +1007,12 @@ async function lookupEditWeather(){
   const keep = editWx, keepStart = editWxStart;
   btn.textContent = '조회 중…';
   try{
-    editWx = await fetchWeatherAt(when);
+    const b = await fetchWeatherBundle(when);
+    if(!b.day && !b.next) throw new Error('none');
+    editWx = { day: b.day || keep.day, next: b.next || null };
     editWxStart = $('#eStart').value || v;
     renderEditWx();
-    toast('날씨 가져왔어');
+    toast(b.next ? '당일·다음날 날씨 가져왔어' : '당일 날씨만 가져왔어');
   }catch(e){
     editWx = keep; editWxStart = keepStart;
     toast('그 시각 날씨를 못 가져왔어');
@@ -930,27 +1041,34 @@ async function saveEdit(){
   if(!date){ toast('날짜를 골라 줘'); return; }
 
   const startChanged = !!(start && editWxStart && !sameLocal(start, editWxStart));
-  const wx = startChanged ? { weather:null, weatherCode:null, temperature:null, pressure:null } : editWx;
+  const wxDay = (!startChanged && editWx && editWx.day)
+    ? editWx.day : { weather:null, weatherCode:null, temperature:null, pressure:null };
+  const wxNext = startChanged ? null : ((editWx && editWx.next) || null);
   const rec = Object.assign({}, editOrig || {}, {
     id: editId || uid(),
     date, start, end,
     medication: $('#eMed').checked,
     menstruation: $('#ePer').checked,
     note: $('#eNote').value.trim(),
-    weather: wx.weather, weatherCode: wx.weatherCode,
-    temperature: wx.temperature, pressure: wx.pressure,
+    weather: wxDay.weather, weatherCode: wxDay.weatherCode,
+    temperature: wxDay.temperature, pressure: wxDay.pressure,
+    nextWeather: wxNext,
     source: (editOrig && editOrig.source) || 'manual'
   });
   upsert(rec);
-  const needWx = !!(start && !rec.weather);
+  const needWx = start ? (!rec.weather || !rec.nextWeather) : !rec.nextWeather;
   closeSheet();
   renderAll();
   toast(`저장됨 · ${Number(date.slice(5,7))}/${Number(date.slice(8,10))}${end ? ' · ' + fmtDur(durationMin(rec)) : ''}`);
   if(needWx){
     try{
-      const w = await fetchWeatherAt(new Date(start));
+      const b = start ? await fetchWeatherBundle(new Date(start)) : { day:null, next: await fetchNextDay(date) };
       const stored = records.find(r => r.id === rec.id);
-      if(stored){ Object.assign(stored, w); upsert(stored); renderAll(); }
+      if(stored && (b.day || b.next)){
+        if(b.day) Object.assign(stored, b.day);
+        if(b.next) stored.nextWeather = b.next;
+        upsert(stored); renderAll();
+      }
     }catch(e){ /* 날씨 없이 저장 */ }
   }
 }
@@ -1007,6 +1125,7 @@ function renderList(){
     if(marks) meta.push(`<i>${marks}</i>`);
     if(wx) meta.push(`<i>${esc(wx)}</i>`);
     if(r.pressure !== null && r.pressure !== undefined) meta.push(`<i>${r.pressure}hPa</i>`);
+    if(r.nextWeather && r.nextWeather.weather) meta.push(`<i>${esc(nxLabel(r.nextWeather))}</i>`);
     html += `<div class="litem${isOngoing(r) ? ' open' : ''}">
       <div class="ldot"></div>
       <button class="lbody" data-edit="${r.id}" type="button">
@@ -1080,6 +1199,7 @@ function renderDayDetail(){
       if(dur) meta.push(`<i>⏱ ${dur}</i>`);
       if(r.weather) meta.push(`<i>${wxIcon(r.weatherCode)} ${r.weather}${(r.temperature !== null && r.temperature !== undefined) ? ' ' + r.temperature + '℃' : ''}</i>`);
       if(r.pressure !== null && r.pressure !== undefined) meta.push(`<i>${r.pressure}hPa</i>`);
+      if(r.nextWeather && r.nextWeather.weather) meta.push(`<i>${esc(nxLabel(r.nextWeather, true))}</i>`);
       html += `<div class="rec" data-rec="${r.id}">
         <div class="top">
           <div class="tm">${s ? hhmm(s) + (e ? ' ~ ' + hhmm(e) : '') : '시간 미기록'}</div>
@@ -1116,6 +1236,10 @@ function renderDayDetail(){
    ============================================================ */
 function pct(a,b){ return b ? Math.round(a/b*1000)/10 : null; }
 function pctText(v){ return v === null ? '-' : `${v}%`; }
+function nextWeatherHint(nRain, nAll, dRain, dDry, f){
+  return `다음날 비·눈이 온 ${nRain}건의 기록일→다음날 평균 기압 변화 ${f(dRain)}hPa · `
+       + `안 온 ${nAll - nRain}건 ${f(dDry)}hPa. '비 오기 전날'은 그 기록 다음 날에 비나 눈이 온 경우야.`;
+}
 
 function renderStats(){
   const now = new Date();
@@ -1147,6 +1271,48 @@ function renderStats(){
   const perN = records.filter(r => r.menstruation).length;
   $('#stMed').textContent = pctText(pct(medN, total));
   $('#stPeriod').textContent = pctText(pct(perN, total));
+
+  // 다음날(비 오기 전날) 비·눈 비율
+  const isRainy = r => RAINY_LABELS.indexOf(r.weather) >= 0 || (typeof r.weatherCode === 'number' && PRECIP_CODES.has(r.weatherCode));
+  const nxRecs = records.filter(r => r.nextWeather && r.nextWeather.weather);
+  const nxRain = nxRecs.filter(r => r.nextWeather.isPrecip);
+  const nxP = pct(nxRain.length, nxRecs.length);
+  $('#stNxPct').innerHTML = nxRecs.length ? pctText(nxP) : '-';
+  $('#stNxCnt').textContent = nxRecs.length ? `${nxRain.length}건 / ${nxRecs.length}건` : '기록 없음';
+  if(nxRecs.length){
+    const todayRainN = nxRecs.filter(isRainy).length;
+    const rainyThenRain = nxRain.filter(isRainy).length;
+    const dryThenRain = nxRecs.filter(r => !isRainy(r) && r.nextWeather.isPrecip).length;
+    $('#stNxCmp').innerHTML =
+      `당일이 비·눈이었던 건 <b>${todayRainN}건(${pctText(pct(todayRainN, nxRecs.length))})</b> · 그중 ${rainyThenRain}건은 다음날도 비·눈<br>`
+      + `당일은 맑았는데 다음날 비·눈이 온 건 <b>${dryThenRain}건</b>`;
+  }else{
+    $('#stNxCmp').textContent = '새 기록을 저장하면 다음날 날씨가 자동으로 붙어.';
+  }
+
+  // 다음날 날씨별 분포
+  const nxTally = {}, nxIcon = {};
+  for(const r of nxRecs){
+    const k = r.nextWeather.weather;
+    nxTally[k] = (nxTally[k] || 0) + 1;
+    if(!nxIcon[k]) nxIcon[k] = r.nextWeather.icon || wxIcon(r.nextWeather.weatherCode);
+  }
+  const nxRows = Object.entries(nxTally).sort((a,b)=>b[1]-a[1]);
+  const nxMax = nxRows.length ? nxRows[0][1] : 1;
+  $('#nxBars').innerHTML = nxRows.length
+    ? nxRows.map(([k,v]) => `<div class="bar"><div class="bl">${nxIcon[k]} ${k}</div>
+        <div class="bt"><div class="bf" style="width:${Math.round(v/nxMax*100)}%"></div></div>
+        <div class="bc">${v}회</div></div>`).join('')
+    : '<div class="empty">다음날 날씨가 붙은 기록이 아직 없어.</div>';
+  if(nxRecs.length){
+    const avg = arr => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length*10)/10 : null;
+    const dRain = avg(nxRain.map(r => r.nextWeather.pressureDelta).filter(v => typeof v === 'number'));
+    const dDry = avg(nxRecs.filter(r => !r.nextWeather.isPrecip).map(r => r.nextWeather.pressureDelta).filter(v => typeof v === 'number'));
+    const f = v => (v === null ? '-' : `${v > 0 ? '+' : ''}${v}`);
+    $('#nxHint').textContent = nextWeatherHint(nxRain.length, nxRecs.length, dRain, dDry, f);
+  }else{
+    $('#nxHint').textContent = '';
+  }
 
   // 날씨별 분포
   const wxRecs = records.filter(r => r.weather);
@@ -1202,13 +1368,15 @@ function exportJSON(){
   download(`편두통기록_${todayStr()}.json`, JSON.stringify(records, null, 2), 'application/json');
 }
 function exportCSV(){
-  const head = ['날짜','시작','종료','지속(분)','투약','생리여부','날씨','기온(℃)','기압(hPa)','메모'];
+  const head = ['날짜','시작','종료','지속(분)','투약','생리여부','날씨','기온(℃)','기압(hPa)','다음날날씨','다음날강수(mm)','다음날비눈','메모'];
   const q = v => `"${String(v ?? '').replace(/"/g,'""')}"`;
   const lines = [head.join(',')];
   for(const r of records){
+    const nw = r.nextWeather || {};
     lines.push([dateOf(r), r.start?hhmm(startDT(r)):'', r.end?hhmm(endDT(r)):'',
       durationMin(r) ?? '', r.medication?'O':'', r.menstruation?'O':'',
       r.weather ?? '', r.temperature ?? '', r.pressure ?? '',
+      nw.weather ?? '', nw.precipMm ?? '', (nw.weather ? (nw.isPrecip ? 'O' : 'X') : ''),
       (r.note || '').replace(/\n/g,' ')].map(q).join(','));
   }
   download(`편두통기록_${todayStr()}.csv`, '\uFEFF' + lines.join('\r\n'), 'text/csv;charset=utf-8');
@@ -1229,6 +1397,7 @@ function importJSON(file){
           medication: !!raw.medication, menstruation: !!raw.menstruation,
           weather: raw.weather ?? null, weatherCode: raw.weatherCode ?? null,
           temperature: raw.temperature ?? null, pressure: raw.pressure ?? null,
+          nextWeather: raw.nextWeather ?? null,
           note: raw.note || '', source: raw.source || 'import'
         };
         delta.overrides[rec.id] = rec; n++;
