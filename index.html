@@ -636,7 +636,7 @@ function syncStatusText(){
   if(!ghPat) return '이 기기에만 저장 중';
   if(syncState === 'syncing') return '저장 중…';
   if(syncState === 'error') return '오류 · ' + syncErrMsg;
-  if(syncState === 'synced') return 'GitHub에 암호화 저장됨';
+  if(syncState === 'synced') return 'GitHub과 맞춰져 있어';
   return '연결됨 · 아직 동기화 전';
 }
 function updateSyncInfo(){
@@ -828,7 +828,7 @@ async function doSync(reason){
     try{ localStorage.setItem(LS_SYNC, JSON.stringify({ lastSync: lastSyncAt })); }catch(e){}
     syncState = 'synced'; syncErrMsg = '';
     rebuild(); renderAll();
-    if(reason === 'manual' || reason === 'connect') toast('☁️ GitHub에 저장했어');
+    if(reason === 'manual' || reason === 'connect') toast('☁️ 동기화 완료');
   }catch(e){
     syncState = 'error';
     syncErrMsg = syncErrText(e);
