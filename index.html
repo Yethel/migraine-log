@@ -133,7 +133,7 @@
   .day.sel .marks{color:#fff}
   .day .n{font-size:10px;color:var(--primary-dark)}
   .day.sel .n{color:#fff}
-  .day .marks{font-size:9px;letter-spacing:-1px;line-height:1}
+  .day .marks{font-size:11px;letter-spacing:-1px;line-height:1;margin-top:1px}
   .day .ddot{position:absolute;bottom:4px;width:3px;height:3px;border-radius:50%;background:var(--primary)}
   .day.sel .ddot{background:#fff}
 
@@ -149,7 +149,7 @@
   .rec .meta{font-size:12px;color:var(--muted);margin-top:6px;display:flex;flex-wrap:wrap;gap:6px}
   .rec .meta i{font-style:normal;background:#f1f2f7;border-radius:999px;padding:3px 8px}
   .rec .note{font-size:13px;margin-top:8px;white-space:pre-wrap;color:#374151}
-  .rec .noteedit{width:100%;border:1px dashed var(--line);border-radius:10px;padding:8px;font-size:13px;background:#fcfcfe;margin-top:8px}
+  .rec .noteedit{width:100%;border:1px dashed var(--line);border-radius:10px;padding:8px;font-size:13px;background:#fcfcfe;margin-top:8px;line-height:1.5;resize:vertical}
   .rec .tog{display:flex;gap:6px;margin-top:8px}
   .rec .tog button{font-size:12px;padding:6px 10px;border-radius:999px;background:#f1f2f7;color:#6b7280}
   .rec .tog button.on{background:var(--soft);color:var(--primary-dark);font-weight:700}
@@ -732,7 +732,7 @@ function renderDayDetail(){
           <button class="del" data-del="${r.id}">삭제</button>
         </div>
         ${meta.length ? `<div class="meta">${meta.join('')}</div>` : ''}
-        <textarea class="noteedit" id="${noteId}" rows="2" placeholder="메모">${(r.note||'').replace(/</g,'&lt;')}</textarea>
+        <textarea class="noteedit" id="${noteId}" rows="${Math.min(8, Math.max(2, (r.note || '').split('\n').length))}" placeholder="메모">${(r.note||'').replace(/</g,'&lt;')}</textarea>
         <div class="tog">
           <button data-tmed="${r.id}" class="${r.medication?'on':''}">💊 투약</button>
           <button data-tper="${r.id}" class="${r.menstruation?'on blood':''}">🩸 생리</button>
