@@ -673,8 +673,15 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;
 function setNowDefaults(force){
   const el = $('#startAt'); if(!el) return;
   if(force || !el.value) el.value = toLocalValue(new Date());
+  startTouched = false;
   syncStartButton();
 }
+const sameLocal = (a, b) => {
+  if(!a || !b) return false;
+  const da = new Date(a), db = new Date(b);
+  if(isNaN(da) || isNaN(db)) return String(a) === String(b);
+  return toLocalValue(a) === toLocalValue(b);
+};
 function syncStartButton(){
   const btn = $('#startBtn'); if(!btn) return;
   const sv = $('#startAt').value, ev = $('#endAt').value;
@@ -745,7 +752,7 @@ function updateTimer(){
 }
 
 async function onStart(){
-  const sv = $('#startAt').value;
+  const sv = startTouched ? $('#startAt').value : '';
   const ev = $('#endAt').value;
   const when = sv ? new Date(sv) : new Date();
   if(isNaN(when)){ toast('시작 시각을 다시 골라 줘'); return; }
@@ -792,6 +799,7 @@ function onStop(){
   act.end = storeLocal(now);
   upsert(act);
   renderAll();
+  setNowDefaults(true);
   toast(`종료 저장 · ${fmtDur(durationMin(act))} 지속`);
 }
 
@@ -824,6 +832,7 @@ function onMemoSave(){
    수정 시트 (시작·종료·투약·생리·메모 전부)
    ============================================================ */
 let editId = null, editOrig = null, editWx = null, editWxStart = null;
+let startTouched = false;
 
 function openEdit(id, presetDate){
   const rec = id ? records.find(r => r.id === id) : null;
@@ -867,7 +876,7 @@ function syncSheetFields(){
 function syncWxBtn(){
   const btn = $('#eWxBtn'); if(!btn) return;
   const cur = $('#eStart').value || null;
-  btn.textContent = (editWxStart && cur && editWxStart !== cur) ? '이 시각으로 다시 조회' : '날씨 조회';
+  btn.textContent = (editWxStart && cur && !sameLocal(editWxStart, cur)) ? '이 시각으로 다시 조회' : '날씨 조회';
 }
 function renderEditWx(){
   const parts = [];
@@ -917,7 +926,7 @@ async function saveEdit(){
   }
   if(!date){ toast('날짜를 골라 줘'); return; }
 
-  const startChanged = !!(start && editWxStart && start !== editWxStart);
+  const startChanged = !!(start && editWxStart && !sameLocal(start, editWxStart));
   const wx = startChanged ? { weather:null, weatherCode:null, temperature:null, pressure:null } : editWx;
   const rec = Object.assign({}, editOrig || {}, {
     id: editId || uid(),
@@ -1380,8 +1389,8 @@ $('#memoSave').onclick = onMemoSave;
 $('#memo').addEventListener('keydown', e => { if(e.key === 'Enter') onMemoSave(); });
 $('#nowBtn').onclick = () => { setNowDefaults(true); toast('지금 시각으로'); };
 $('#endClear').onclick = () => { $('#endAt').value = ''; syncStartButton(); };
-$('#startAt').addEventListener('input', syncStartButton);
-$('#startAt').addEventListener('change', syncStartButton);
+$('#startAt').addEventListener('input', () => { startTouched = true; syncStartButton(); });
+$('#startAt').addEventListener('change', () => { startTouched = true; syncStartButton(); });
 $('#endAt').addEventListener('input', syncStartButton);
 $('#endAt').addEventListener('change', syncStartButton);
 $('#activeEdit').onclick = () => { const a = activeRec(); if(a) openEdit(a.id); else toast('진행 중인 기록이 없어'); };
@@ -1419,7 +1428,7 @@ $('#remember2').onchange = async e => {
   }
 };
 
-setInterval(() => { if(!$('#app').hidden && view === 'record') { $('#nowText').textContent = (() => { const n=new Date(); return `${n.getFullYear()}년 ${n.getMonth()+1}월 ${n.getDate()}일 ${['일','월','화','수','목','금','토'][n.getDay()]}요일 ${hhmm(n)}`; })(); updateTimer(); } }, 30000);
+setInterval(() => { if(!$('#app').hidden && view === 'record') { $('#nowText').textContent = (() => { const n=new Date(); return `${n.getFullYear()}년 ${n.getMonth()+1}월 ${n.getDate()}일 ${['일','월','화','수','목','금','토'][n.getDay()]}요일 ${hhmm(n)}`; })(); updateTimer(); if(!startTouched && !activeRec()) setNowDefaults(true); } }, 30000);
 
 boot();
 </script>
