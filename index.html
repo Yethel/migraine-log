@@ -174,6 +174,53 @@
   .io .primary{background:var(--soft);color:var(--primary-dark)}
   .hint{font-size:11px;color:#9ca3af;margin-top:10px;line-height:1.6}
 
+  /* ---------- 시작 시각 지정 ---------- */
+  .dtrow{display:flex;align-items:center;gap:8px;background:#fbfbfd;border:1px solid var(--line);border-radius:13px;padding:6px 6px 6px 12px;margin-top:8px}
+  .dtrow .dtl{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
+  .dtrow .dtl em{font-style:normal;color:#b6bac6;font-weight:500}
+  .dtrow input{flex:1;min-width:0;border:0;background:transparent;padding:8px 0;outline:none;font-size:15px;color:#1f2333}
+  .dtrow .chip{font-size:12px;font-weight:700;color:var(--primary);background:var(--soft);padding:8px 11px;border-radius:10px}
+  .ghost{width:100%;margin-top:10px;padding:12px;border-radius:13px;background:#f1f2f7;color:#4b5563;font-weight:700;font-size:13px}
+  .ghost.sm{width:auto;margin:0;padding:9px 12px;font-size:12px}
+
+  /* ---------- 달력·리스트 전환 ---------- */
+  .seg{display:flex;gap:6px;background:#eceef5;border-radius:14px;padding:4px;margin-bottom:12px}
+  .seg button{flex:1;padding:10px 0;border-radius:11px;font-size:13px;font-weight:700;color:#6b7280}
+  .seg button.on{background:#fff;color:var(--primary-dark);box-shadow:0 1px 3px rgba(16,18,45,.1)}
+
+  /* ---------- 리스트 ---------- */
+  .lmonth{display:flex;align-items:baseline;gap:6px;font-size:13px;font-weight:800;color:#2b2a6b;margin:14px 2px 8px}
+  .lmonth:first-child{margin-top:2px}
+  .lmonth span{font-size:11px;font-weight:600;color:var(--muted);background:#f1f2f7;border-radius:999px;padding:2px 8px}
+  .litem{display:flex;gap:9px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:11px 10px 11px 12px;margin-bottom:8px;background:#fff}
+  .litem .lbody{flex:1;min-width:0;text-align:left;padding:0}
+  .litem .lday{font-size:13px;font-weight:800;color:#2b2a6b}
+  .litem .lday .wd{font-weight:600;color:var(--muted);font-size:12px;margin-left:4px}
+  .litem .lmeta{font-size:12px;color:var(--muted);margin-top:4px;display:flex;flex-wrap:wrap;gap:5px}
+  .litem .lmeta i{font-style:normal;background:#f1f2f7;border-radius:999px;padding:2px 8px}
+  .litem .lnote{font-size:12px;color:#4b5563;margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .litem .ldel{font-size:13px;color:#c3c7d2;padding:6px 4px 6px 2px}
+  .ldot{width:8px;height:8px;border-radius:50%;background:var(--primary);margin-top:7px;flex:0 0 auto}
+  .litem.open .ldot{background:#e0326e}
+
+  /* ---------- 수정 시트 ---------- */
+  #sheet{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;justify-content:center}
+  #sheet .bg{position:absolute;inset:0;background:rgba(15,18,45,.45)}
+  #sheet .panel{position:relative;width:100%;max-width:560px;max-height:92vh;overflow:auto;background:var(--card);
+    border-radius:20px 20px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(15,18,45,.2)}
+  #sheet .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  #sheet .sh .t{font-size:16px;font-weight:800;letter-spacing:-.3px}
+  #sheet .sh .x{font-size:18px;color:#9ca3af;padding:6px 8px}
+  #sheet .acts{display:flex;gap:8px;margin-top:12px}
+  #sheet .acts .save{flex:1}
+  #sheet .acts .del{font-size:13px;font-weight:700;color:#c0245c;background:var(--pink-soft);border-radius:13px;padding:0 16px}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:9px 13px;border-radius:999px;background:#f1f2f7;font-size:13px;font-weight:600;color:#4b5563}
+  .chip input{width:17px;height:17px;accent-color:var(--primary)}
+  .chip.on{background:var(--soft);color:var(--primary-dark)}
+  .chip.on.blood{background:var(--pink-soft);color:#b3245a}
+  .wxrow{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fbfbfd;border:1px dashed var(--line);border-radius:12px;padding:10px 12px;margin:2px 0 4px}
+  .wxrow .wxv{font-size:13px;color:#4b5563}
+
   /* ---------- 탭바 ---------- */
   nav.tabs{
     position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(255,255,255,.96);
@@ -229,8 +276,25 @@
         <div id="timerBox" hidden>
           <div class="timer" id="timer">0:00</div>
         </div>
-        <button class="bigbtn" id="startBtn">두통 시작</button>
-        <button class="bigbtn stop" id="stopBtn" hidden>두통 종료</button>
+        <div id="startForm">
+          <div class="dtrow">
+            <span class="dtl">시작</span>
+            <input type="datetime-local" id="startAt" />
+            <button class="chip" id="nowBtn" type="button">지금</button>
+          </div>
+          <div class="dtrow">
+            <span class="dtl">종료 <em>(선택)</em></span>
+            <input type="datetime-local" id="endAt" />
+            <button class="chip" id="endClear" type="button">지움</button>
+          </div>
+          <button class="bigbtn" id="startBtn">두통 시작</button>
+          <div class="hint">기본값은 지금 시각이야. 날짜·시간을 바꿔서 지난 두통도 그 시각으로 기록할 수 있어 (날씨·기압도 그 시각 기준으로 조회).</div>
+        </div>
+
+        <div id="activeBox" hidden>
+          <button class="bigbtn stop" id="stopBtn">두통 종료</button>
+          <button class="ghost" id="activeEdit" type="button">시작·종료 시각 직접 수정</button>
+        </div>
         <div class="wx" id="wxBox"></div>
       </div>
 
@@ -252,37 +316,36 @@
         <button id="memoSave">저장</button>
       </div>
 
-      <details class="manual" id="manualBox" style="margin-top:12px">
-        <summary>과거 기록 직접 추가·수정</summary>
-        <div class="inner">
-          <div class="grid2">
-            <label class="field"><span class="lb">날짜</span><input type="date" id="mDate" /></label>
-            <label class="field"><span class="lb">시작 시각 (선택)</span><input type="time" id="mTime" /></label>
-          </div>
-          <div class="checkrow">
-            <label><input type="checkbox" id="mMed" /> 💊 투약</label>
-            <label><input type="checkbox" id="mPeriod" /> 🩸 생리여부</label>
-          </div>
-          <label class="field"><span class="lb">메모</span><textarea id="mNote" placeholder="예: 오후부터 아팠고 저녁에 약 먹고 나음"></textarea></label>
-          <button class="save" id="mSave">이 날짜에 기록 저장</button>
-          <div class="hint">같은 날짜에 이미 기록이 있으면 새 기록으로 한 건 더 추가돼. 수정·삭제는 달력에서 날짜를 눌러서 해.</div>
-        </div>
-      </details>
+      <button class="ghost" id="manualAdd" type="button" style="margin-top:12px">＋ 과거 기록 직접 추가 (시작·종료 시각까지)</button>
     </section>
 
-    <!-- 달력 -->
+    <!-- 달력 / 리스트 -->
     <section id="view-calendar" hidden>
-      <div class="card">
-        <div class="calhead">
-          <button class="navbtn" id="prevM">◀</button>
-          <div class="m" id="calTitle"></div>
-          <button class="navbtn" id="nextM">▶</button>
-        </div>
-        <div class="monTotal"><b id="monthTotal">0</b><span>회 · 이 달 두통 기록</span></div>
-        <div class="calgrid" id="calGrid"></div>
-        <div class="hint" id="calHint">날짜를 누르면 그날 기록을 보고 지울 수 있어.</div>
+      <div class="seg">
+        <button data-mode="calendar" class="on">📅 달력</button>
+        <button data-mode="list">📋 리스트</button>
       </div>
-      <div class="card daydetail" id="dayDetail"></div>
+
+      <div id="calPane">
+        <div class="card">
+          <div class="calhead">
+            <button class="navbtn" id="prevM">◀</button>
+            <div class="m" id="calTitle"></div>
+            <button class="navbtn" id="nextM">▶</button>
+          </div>
+          <div class="monTotal"><b id="monthTotal">0</b><span>회 · 이 달 두통 기록</span></div>
+          <div class="calgrid" id="calGrid"></div>
+          <div class="hint" id="calHint">날짜를 누르면 그날 기록을 보고 고칠 수 있어.</div>
+        </div>
+        <div class="card daydetail" id="dayDetail"></div>
+      </div>
+
+      <div id="listPane" hidden>
+        <div class="card">
+          <h2>전체 기록 <span id="listCount" style="font-weight:600;color:#9ca3af"></span></h2>
+          <div id="recList"></div>
+        </div>
+      </div>
     </section>
 
     <!-- 통계 -->
@@ -326,6 +389,34 @@
     <button data-view="calendar"><span class="i">📅</span>달력</button>
     <button data-view="stats"><span class="i">📊</span>통계</button>
   </nav>
+</div>
+
+<!-- ================= 수정 시트 ================= -->
+<div id="sheet" hidden>
+  <div class="bg" data-close="1"></div>
+  <div class="panel">
+    <div class="sh">
+      <div class="t" id="sheetTitle">기록 수정</div>
+      <button class="x" data-close="1" type="button">✕</button>
+    </div>
+    <label class="field"><span class="lb">시작 일시</span><input type="datetime-local" id="eStart" /></label>
+    <label class="field" id="eDateWrap"><span class="lb">날짜 (시각 없이 기록)</span><input type="date" id="eDate" /></label>
+    <label class="field" id="eEndWrap"><span class="lb">종료 일시</span><input type="datetime-local" id="eEnd" /></label>
+    <div class="checkrow" style="gap:8px;margin-bottom:10px">
+      <label class="chip" id="eMedChip"><input type="checkbox" id="eMed" /> 💊 투약</label>
+      <label class="chip blood" id="ePerChip"><input type="checkbox" id="ePer" /> 🩸 생리여부</label>
+    </div>
+    <label class="field"><span class="lb">메모</span><textarea id="eNote" rows="3" placeholder="예: 오후부터 아팠고 저녁에 약 먹고 나음"></textarea></label>
+    <div class="wxrow">
+      <div class="wxv" id="eWx">날씨 없음</div>
+      <button class="chip" id="eWxBtn" type="button">날씨 조회</button>
+    </div>
+    <div class="acts">
+      <button class="save" id="eSave" type="button">저장</button>
+      <button class="del" id="eDel" type="button">삭제</button>
+    </div>
+    <div class="hint" id="eHint">시작·종료 시각을 고치면 지속시간·달력·통계가 바로 다시 계산돼.</div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -459,7 +550,8 @@ function fmtElapsed(ms){
   return `${h}:${pad(m)}`;
 }
 const recordsOn = ds => records.filter(r => dateOf(r) === ds);
-const activeRec = () => records.filter(r => r.start && !r.end).sort((a,b)=> startDT(b)-startDT(a))[0] || null;
+const isOngoing = r => !!(r.start && !r.end && (Date.now() - startDT(r).getTime()) < 24*3600*1000);
+const activeRec = () => records.filter(r => isOngoing(r)).sort((a,b)=> startDT(b)-startDT(a))[0] || null;
 
 /* ============================================================
    날씨
@@ -477,32 +569,71 @@ const WCODE = {
 function wxLabel(code){ return (WCODE[code] || ['•','기타'])[1]; }
 function wxIcon(code){ return (WCODE[code] || ['•','기타'])[0]; }
 
-async function currentWeather(){
-  let coords = FALLBACK;
+let geoCache = null;
+async function getCoords(){
+  if(geoCache) return geoCache;
   try{
     if(navigator.geolocation){
-      coords = await new Promise((res, rej) => {
+      geoCache = await new Promise((res, rej) => {
         navigator.geolocation.getCurrentPosition(
           p => res({ lat:p.coords.latitude, lon:p.coords.longitude }),
           () => rej(new Error('denied')),
           { timeout:6000, maximumAge:600000, enableHighAccuracy:false }
         );
       });
+      return geoCache;
     }
-  }catch(e){ coords = FALLBACK; }
+  }catch(e){ /* 거부·실패 시 기본 좌표 */ }
+  geoCache = FALLBACK;
+  return geoCache;
+}
 
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}`
-            + `&current=temperature_2m,weather_code,surface_pressure&timezone=Asia%2FSeoul`;
-  const r = await fetch(url, { cache:'no-store' });
-  if(!r.ok) throw new Error('weather_fail');
-  const j = await r.json();
-  const c = j.current || {};
+/* 특정 날짜·시각의 시간별 날씨 한 칸을 골라낸다 */
+function pickHour(j, when){
+  const h = j && j.hourly;
+  if(!h || !Array.isArray(h.time) || !h.time.length) return null;
+  const key = `${ymd(when)}T${pad(when.getHours())}`;
+  let i = h.time.findIndex(t => String(t).startsWith(key));
+  if(i < 0){
+    let bd = Infinity;
+    h.time.forEach((t, k) => {
+      const d = Math.abs(new Date(t).getTime() - when.getTime());
+      if(d < bd){ bd = d; i = k; }
+    });
+  }
+  if(i < 0) return null;
+  const code = h.weather_code ? h.weather_code[i] : null;
+  const temp = h.temperature_2m ? h.temperature_2m[i] : null;
+  const pres = h.surface_pressure ? h.surface_pressure[i] : null;
+  if(code === null && temp === null && pres === null) return null;
   return {
-    weather: wxLabel(c.weather_code),
-    weatherCode: c.weather_code ?? null,
-    temperature: (c.temperature_2m === null || c.temperature_2m === undefined) ? null : Math.round(c.temperature_2m*10)/10,
-    pressure: (c.surface_pressure === null || c.surface_pressure === undefined) ? null : Math.round(c.surface_pressure*10)/10
+    weather: (code === null || code === undefined) ? null : wxLabel(code),
+    weatherCode: (code === undefined) ? null : code,
+    temperature: (temp === null || temp === undefined) ? null : Math.round(temp*10)/10,
+    pressure: (pres === null || pres === undefined) ? null : Math.round(pres*10)/10
   };
+}
+
+/* 지정한 시각의 날씨·기온·기압 (지난 날짜는 archive, 최근은 forecast) */
+async function fetchWeatherAt(when){
+  const coords = await getCoords();
+  const ds = ymd(when);
+  const q = `latitude=${coords.lat}&longitude=${coords.lon}`
+          + `&start_date=${ds}&end_date=${ds}`
+          + `&hourly=temperature_2m,weather_code,surface_pressure&timezone=Asia%2FSeoul`;
+  const daysAgo = (Date.now() - when.getTime()) / 86400000;
+  const urls = [];
+  if(daysAgo <= 90 && daysAgo >= -10) urls.push('https://api.open-meteo.com/v1/forecast?' + q);
+  urls.push('https://archive-api.open-meteo.com/v1/archive?' + q);
+  for(const u of urls){
+    try{
+      const r = await fetch(u, { cache:'no-store' });
+      if(!r.ok) continue;
+      const got = pickHour(await r.json(), when);
+      if(got) return got;
+    }catch(e){ /* 다음 경로 시도 */ }
+  }
+  throw new Error('weather_fail');
 }
 
 /* ============================================================
@@ -524,6 +655,34 @@ function ensureTodayRecord(){
   return rec;
 }
 
+/* ---------- 시작 시각 입력 도우미 ---------- */
+const toLocalValue = s => {
+  if(!s) return '';
+  const d = new Date(s);
+  if(isNaN(d)) return '';
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+const storeLocal = d => `${ymd(d)}T${hhmm(d)}:00`;   // 로컬 시각 그대로 저장(Z 없이)
+function endLabel(r){
+  if(r.end) return hhmm(endDT(r));
+  if(!r.start) return '';
+  return isOngoing(r) ? '진행 중' : '종료 미기록';
+}
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function setNowDefaults(force){
+  const el = $('#startAt'); if(!el) return;
+  if(force || !el.value) el.value = toLocalValue(new Date());
+  syncStartButton();
+}
+function syncStartButton(){
+  const btn = $('#startBtn'); if(!btn) return;
+  const sv = $('#startAt').value, ev = $('#endAt').value;
+  if(ev){ btn.textContent = '이 시각으로 기록 저장'; return; }
+  if(!sv){ btn.textContent = '두통 시작'; return; }
+  btn.textContent = (sv.slice(0,10) === todayStr()) ? '두통 시작' : '이 시각으로 기록';
+}
+
 function renderRecord(){
   const now = new Date();
   $('#nowText').textContent = `${now.getFullYear()}년 ${now.getMonth()+1}월 ${now.getDate()}일 ${['일','월','화','수','목','금','토'][now.getDay()]}요일 ${hhmm(now)}`;
@@ -531,19 +690,22 @@ function renderRecord(){
   const target = todayTarget();
   const todayList = recordsOn(todayStr());
 
-  $('#startBtn').hidden = !!act;
-  $('#stopBtn').hidden  = !act;
+  $('#startForm').hidden = !!act;
+  $('#activeBox').hidden = !act;
   $('#timerBox').hidden = !act;
 
   if(act){
     $('#heroState').textContent = '두통 진행 중';
     const s = startDT(act);
-    $('#heroSub').textContent = `${s.getMonth()+1}월 ${s.getDate()}일 ${hhmm(s)} 시작`;
-    $('#startBtn').hidden = true; $('#stopBtn').hidden = false;
+    $('#heroSub').textContent = `${s.getFullYear() !== now.getFullYear() ? s.getFullYear()+'년 ' : ''}${s.getMonth()+1}월 ${s.getDate()}일 ${hhmm(s)} 시작`;
     updateTimer();
   }else if(todayList.length){
+    const last = todayList[0];
+    const l = startDT(last);
     $('#heroState').textContent = `오늘 ${todayList.length}건 기록됨`;
-    $('#heroSub').textContent = '다시 아프면 "두통 시작"을 눌러';
+    $('#heroSub').textContent = l
+      ? `마지막 ${hhmm(l)}${last.end ? ' ~ ' + hhmm(endDT(last)) : ''} · 또 아프면 시작 버튼`
+      : '다시 아프면 "두통 시작"을 눌러';
   }else{
     $('#heroState').textContent = '오늘 아직 기록 없음';
     $('#heroSub').textContent = '아플 때 큰 버튼 하나만 누르면 돼';
@@ -560,7 +722,7 @@ function renderRecord(){
 
   const w = act || target;
   const wxBox = $('#wxBox');
-  if(w && (w.weather || w.pressure !== null && w.pressure !== undefined)){
+  if(w && (w.weather || (w.pressure !== null && w.pressure !== undefined))){
     const parts = [];
     if(w.weather) parts.push(`${wxIcon(w.weatherCode)} ${w.weather}`);
     if(w.temperature !== null && w.temperature !== undefined) parts.push(`${w.temperature}℃`);
@@ -577,46 +739,57 @@ function renderRecord(){
 
 function updateTimer(){
   const act = activeRec();
-  if(!act){ return; }
-  const s = startDT(act);
-  const ms = Date.now() - s.getTime();
-  const el = $('#timer');
-  el.innerHTML = `${fmtElapsed(ms)}<small> 경과</small>`;
+  if(!act) return;
+  const ms = Date.now() - startDT(act).getTime();
+  $('#timer').innerHTML = `${fmtElapsed(ms)}<small> 경과</small>`;
 }
 
 async function onStart(){
-  const now = new Date();
+  const sv = $('#startAt').value;
+  const ev = $('#endAt').value;
+  const when = sv ? new Date(sv) : new Date();
+  if(isNaN(when)){ toast('시작 시각을 다시 골라 줘'); return; }
+  if(when.getTime() > Date.now() + 120000){ toast('시작 시각이 아직 미래야'); return; }
+  let endD = null;
+  if(ev){
+    endD = new Date(ev);
+    if(isNaN(endD)){ toast('종료 시각을 다시 골라 줘'); return; }
+    if(endD.getTime() < when.getTime()){ toast('종료가 시작보다 빨라'); return; }
+  }
+  const ds = ymd(when);
+  const prev = recordsOn(ds)[0];
   const rec = {
-    id:uid(), date:ymd(now), start: now.toISOString(), end:null,
-    medication:false, menstruation:false,
-    weather:null, weatherCode:null, temperature:null, pressure:null, note:'', source:'app'
+    id: uid(), date: ds, start: storeLocal(when), end: endD ? storeLocal(endD) : null,
+    medication: prev ? !!prev.medication : false,
+    menstruation: prev ? !!prev.menstruation : false,
+    weather:null, weatherCode:null, temperature:null, pressure:null,
+    note:'', source:'app'
   };
-  const todayList = recordsOn(todayStr());
-  const prev = todayList[0];
-  if(prev){ rec.medication = !!prev.medication; rec.menstruation = !!prev.menstruation; }
   upsert(rec);
   renderAll();
-  toast('시작 기록 저장 · 날씨 확인 중…');
+  toast(endD ? `기록 저장 · ${fmtDur(durationMin(rec))}` : '시작 기록 저장 · 날씨 확인 중…');
+  if(endD || when.getTime() < Date.now() - 60000) setNowDefaults(true);
+
   try{
-    const w = await currentWeather();
+    const w = await fetchWeatherAt(when);
     const stored = records.find(r => r.id === rec.id);
-    if(stored){ stored.weather = w.weather; stored.weatherCode = w.weatherCode;
-                stored.temperature = w.temperature; stored.pressure = w.pressure;
-                upsert(stored); renderAll(); toast(`날씨 저장 · ${w.weather} ${w.temperature ?? ''}℃`); }
+    if(stored){
+      Object.assign(stored, w);
+      upsert(stored); renderAll();
+      const wxTxt = [w.weather, (w.temperature !== null && w.temperature !== undefined) ? w.temperature + '℃' : ''].filter(Boolean).join(' ');
+      toast(`날씨 저장 · ${wxTxt || '기압만'}`);
+    }
   }catch(e){
     toast('날씨는 못 가져왔어 (기록은 저장됨)');
   }
-  if(tick) clearInterval(tick);
-  tick = setInterval(updateTimer, 30000);
 }
 
 function onStop(){
   const act = activeRec();
   if(!act) return;
   const now = new Date();
-  const s = startDT(act);
-  if(now < s){ toast('시작 시각이 미래라 종료를 저장할 수 없어'); return; }
-  act.end = now.toISOString();
+  if(now < startDT(act)){ toast('시작 시각이 미래라 종료를 저장할 수 없어'); return; }
+  act.end = storeLocal(now);
   upsert(act);
   renderAll();
   toast(`종료 저장 · ${fmtDur(durationMin(act))} 지속`);
@@ -647,23 +820,192 @@ function onMemoSave(){
   toast(txt ? '메모 저장' : '메모 지움');
 }
 
-/* 과거 기록 수동 추가 */
-function onManualSave(){
-  const d = $('#mDate').value;
-  if(!d){ toast('날짜를 골라 줘'); return; }
-  const t = $('#mTime').value;
-  const start = t ? `${d}T${t}:00` : null;
-  const rec = {
-    id:uid(), date:d, start, end:null,
-    medication: $('#mMed').checked,
-    menstruation: $('#mPeriod').checked,
-    weather:null, weatherCode:null, temperature:null, pressure:null,
-    note: $('#mNote').value.trim(), source:'manual'
-  };
+/* ============================================================
+   수정 시트 (시작·종료·투약·생리·메모 전부)
+   ============================================================ */
+let editId = null, editOrig = null, editWx = null, editWxStart = null;
+
+function openEdit(id, presetDate){
+  const rec = id ? records.find(r => r.id === id) : null;
+  editId = rec ? rec.id : null;
+  editOrig = rec ? JSON.parse(JSON.stringify(rec)) : null;
+  const b = rec || { date: presetDate || todayStr(), start:null, end:null,
+                     medication:false, menstruation:false,
+                     weather:null, weatherCode:null, temperature:null, pressure:null, note:'' };
+  editWx = { weather: b.weather ?? null, weatherCode: b.weatherCode ?? null,
+             temperature: b.temperature ?? null, pressure: b.pressure ?? null };
+  editWxStart = b.start || null;
+  $('#sheetTitle').textContent = rec ? '기록 수정' : '새 기록';
+  $('#eStart').value = toLocalValue(b.start);
+  $('#eEnd').value = toLocalValue(b.end);
+  $('#eDate').value = dateOf(b) || todayStr();
+  $('#eMed').checked = !!b.medication;
+  $('#ePer').checked = !!b.menstruation;
+  $('#eNote').value = b.note || '';
+  $('#eDel').hidden = !rec;
+  $('#eHint').textContent = rec
+    ? '시작·종료 시각을 고치면 지속시간·달력·통계가 바로 다시 계산돼.'
+    : '저장하면 이 기기에 기록되고, 시각이 있으면 그 시각의 날씨·기압을 조회해 붙여.';
+  syncSheetFields();
+  renderEditWx();
+  $('#sheet').hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+function closeSheet(){
+  $('#sheet').hidden = true;
+  document.body.style.overflow = '';
+  editId = null; editOrig = null;
+}
+function syncSheetFields(){
+  const hasStart = !!$('#eStart').value;
+  $('#eDateWrap').hidden = hasStart;
+  $('#eEndWrap').hidden = !hasStart;
+  $('#eMedChip').classList.toggle('on', $('#eMed').checked);
+  $('#ePerChip').classList.toggle('on', $('#ePer').checked);
+  syncWxBtn();
+}
+function syncWxBtn(){
+  const btn = $('#eWxBtn'); if(!btn) return;
+  const cur = $('#eStart').value || null;
+  btn.textContent = (editWxStart && cur && editWxStart !== cur) ? '이 시각으로 다시 조회' : '날씨 조회';
+}
+function renderEditWx(){
+  const parts = [];
+  if(editWx.weather) parts.push(`${wxIcon(editWx.weatherCode)} ${editWx.weather}`);
+  if(editWx.temperature !== null && editWx.temperature !== undefined) parts.push(`${editWx.temperature}℃`);
+  if(editWx.pressure !== null && editWx.pressure !== undefined) parts.push(`${editWx.pressure}hPa`);
+  $('#eWx').textContent = parts.length ? parts.join(' · ') : '날씨 없음';
+}
+
+async function lookupEditWeather(){
+  const v = $('#eStart').value || (($('#eDate').value || todayStr()) + 'T12:00');
+  const when = new Date(v);
+  if(isNaN(when)){ toast('시작 시각을 확인해 줘'); return; }
+  const btn = $('#eWxBtn');
+  btn.disabled = true;
+  const keep = editWx, keepStart = editWxStart;
+  btn.textContent = '조회 중…';
+  try{
+    editWx = await fetchWeatherAt(when);
+    editWxStart = $('#eStart').value || v;
+    renderEditWx();
+    toast('날씨 가져왔어');
+  }catch(e){
+    editWx = keep; editWxStart = keepStart;
+    toast('그 시각 날씨를 못 가져왔어');
+    renderEditWx();
+  }finally{
+    btn.disabled = false;
+    syncWxBtn();
+  }
+}
+
+async function saveEdit(){
+  const sv = $('#eStart').value;
+  const ev = $('#eEnd').value;
+  let start = null, end = null, date = $('#eDate').value || todayStr();
+  if(sv){
+    const sd = new Date(sv);
+    if(isNaN(sd)){ toast('시작 시각을 확인해 줘'); return; }
+    start = storeLocal(sd); date = ymd(sd);
+  }
+  if(ev){
+    if(!start){ toast('시작 시각을 먼저 넣어 줘'); return; }
+    const ed = new Date(ev);
+    if(isNaN(ed) || ed.getTime() < new Date(start).getTime()){ toast('종료 시각이 시작보다 빨라'); return; }
+    end = storeLocal(ed);
+  }
+  if(!date){ toast('날짜를 골라 줘'); return; }
+
+  const startChanged = !!(start && editWxStart && start !== editWxStart);
+  const wx = startChanged ? { weather:null, weatherCode:null, temperature:null, pressure:null } : editWx;
+  const rec = Object.assign({}, editOrig || {}, {
+    id: editId || uid(),
+    date, start, end,
+    medication: $('#eMed').checked,
+    menstruation: $('#ePer').checked,
+    note: $('#eNote').value.trim(),
+    weather: wx.weather, weatherCode: wx.weatherCode,
+    temperature: wx.temperature, pressure: wx.pressure,
+    source: (editOrig && editOrig.source) || 'manual'
+  });
   upsert(rec);
-  $('#mNote').value = ''; $('#mMed').checked = false; $('#mPeriod').checked = false; $('#mTime').value = '';
+  const needWx = !!(start && !rec.weather);
+  closeSheet();
   renderAll();
-  toast(`${d} 기록 저장`);
+  toast(`저장됨 · ${Number(date.slice(5,7))}/${Number(date.slice(8,10))}${end ? ' · ' + fmtDur(durationMin(rec)) : ''}`);
+  if(needWx){
+    try{
+      const w = await fetchWeatherAt(new Date(start));
+      const stored = records.find(r => r.id === rec.id);
+      if(stored){ Object.assign(stored, w); upsert(stored); renderAll(); }
+    }catch(e){ /* 날씨 없이 저장 */ }
+  }
+}
+
+function askDelete(id){
+  const r = records.find(x => x.id === id);
+  if(!r) return;
+  const ds = dateOf(r);
+  const who = r.start ? `${ds} ${hhmm(startDT(r))} 기록` : `${ds} 기록`;
+  if(!confirm(`${who}을 삭제할까?`)) return;
+  remove(id);
+  if(editId === id) closeSheet();
+  renderAll();
+  toast('삭제됐어');
+}
+
+/* ============================================================
+   리스트 보기
+   ============================================================ */
+const WD = ['일','월','화','수','목','금','토'];
+function weekdayOf(ds){
+  const [y,m,d] = String(ds).split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  return isNaN(dt) ? '' : WD[dt.getDay()];
+}
+function oneLine(s, n=44){
+  const t = String(s || '').replace(/\s+/g, ' ').trim();
+  return t.length > n ? t.slice(0, n) + '…' : t;
+}
+
+function renderList(){
+  const box = $('#recList');
+  $('#listCount').textContent = records.length ? `${records.length}건` : '';
+  if(!records.length){ box.innerHTML = '<div class="empty">아직 기록이 없어.</div>'; return; }
+  let html = '', cur = '';
+  for(const r of records){
+    const ds = dateOf(r);
+    if(!ds) continue;
+    const mon = ds.slice(0, 7);
+    if(mon !== cur){
+      const cnt = records.filter(x => dateOf(x).startsWith(mon)).length;
+      const [yy, mm] = mon.split('-');
+      html += `<div class="lmonth">${yy}년 ${Number(mm)}월 <span>${cnt}회</span></div>`;
+      cur = mon;
+    }
+    const s = startDT(r), e = endDT(r);
+    const dur = fmtDur(durationMin(r));
+    const marks = [r.medication ? '💊' : '', r.menstruation ? '🩸' : ''].filter(Boolean).join(' ');
+    const wx = r.weather ? `${wxIcon(r.weatherCode)} ${r.weather}${(r.temperature !== null && r.temperature !== undefined) ? ' ' + r.temperature + '℃' : ''}` : '';
+    const meta = [];
+    if(s) meta.push(`<i>${hhmm(s)}${e ? '~' + hhmm(e) : ' · ' + endLabel(r)}</i>`);
+    else meta.push('<i>시간 미기록</i>');
+    if(dur) meta.push(`<i>⏱ ${dur}</i>`);
+    if(marks) meta.push(`<i>${marks}</i>`);
+    if(wx) meta.push(`<i>${esc(wx)}</i>`);
+    if(r.pressure !== null && r.pressure !== undefined) meta.push(`<i>${r.pressure}hPa</i>`);
+    html += `<div class="litem${isOngoing(r) ? ' open' : ''}">
+      <div class="ldot"></div>
+      <button class="lbody" data-edit="${r.id}" type="button">
+        <div class="lday">${Number(ds.slice(5,7))}월 ${Number(ds.slice(8,10))}일<span class="wd">${weekdayOf(ds)}</span></div>
+        <div class="lmeta">${meta.join('')}</div>
+        ${r.note ? `<div class="lnote">${esc(oneLine(r.note))}</div>` : ''}
+      </button>
+      <button class="ldel" data-del="${r.id}" type="button">🗑</button>
+    </div>`;
+  }
+  box.innerHTML = html;
 }
 
 /* ============================================================
@@ -712,31 +1054,31 @@ function renderDayDetail(){
   if(!selDate){ box.innerHTML = '<div class="empty">날짜를 누르면 그날 기록이 여기에 보여.</div>'; return; }
   const list = recordsOn(selDate);
   const [y,m,d] = selDate.split('-').map(Number);
-  const wd = ['일','월','화','수','목','금','토'][new Date(y,m-1,d).getDay()];
+  const wd = weekdayOf(selDate);
   let html = `<div class="dhead"><div class="dt">${y}년 ${m}월 ${d}일 (${wd}) · ${list.length}건</div>
     <button class="add" data-add="${selDate}">+ 이 날짜에 추가</button></div>`;
   if(!list.length){
     html += '<div class="empty">이 날은 기록이 없어.</div>';
   }else{
     for(const r of list){
-      const tm = r.start ? hhmm(startDT(r)) : '시간 미기록';
+      const s = startDT(r), e = endDT(r);
       const dur = fmtDur(durationMin(r));
       const meta = [];
+      if(s) meta.push(`<i>${hhmm(s)}${e ? '~' + hhmm(e) : ' · ' + endLabel(r)}</i>`);
       if(dur) meta.push(`<i>⏱ ${dur}</i>`);
-      if(r.weather) meta.push(`<i>${wxIcon(r.weatherCode)} ${r.weather} ${r.temperature ?? ''}℃</i>`);
+      if(r.weather) meta.push(`<i>${wxIcon(r.weatherCode)} ${r.weather}${(r.temperature !== null && r.temperature !== undefined) ? ' ' + r.temperature + '℃' : ''}</i>`);
       if(r.pressure !== null && r.pressure !== undefined) meta.push(`<i>${r.pressure}hPa</i>`);
-      const noteId = 'n_' + r.id.replace(/[^a-zA-Z0-9_-]/g,'');
       html += `<div class="rec" data-rec="${r.id}">
         <div class="top">
-          <div class="tm">${tm}${r.end ? ' ~ ' + hhmm(endDT(r)) : (r.start ? ' · 진행 중' : '')}</div>
-          <button class="del" data-del="${r.id}">삭제</button>
+          <div class="tm">${s ? hhmm(s) + (e ? ' ~ ' + hhmm(e) : '') : '시간 미기록'}</div>
+          <button class="del" data-del="${r.id}" type="button">삭제</button>
         </div>
         ${meta.length ? `<div class="meta">${meta.join('')}</div>` : ''}
-        <textarea class="noteedit" id="${noteId}" rows="${Math.min(8, Math.max(2, (r.note || '').split('\n').length))}" placeholder="메모">${(r.note||'').replace(/</g,'&lt;')}</textarea>
+        ${r.note ? `<div class="note">${esc(r.note)}</div>` : ''}
         <div class="tog">
-          <button data-tmed="${r.id}" class="${r.medication?'on':''}">💊 투약</button>
-          <button data-tper="${r.id}" class="${r.menstruation?'on blood':''}">🩸 생리</button>
-          <button data-savenote="${r.id}">메모 저장</button>
+          <button data-tmed="${r.id}" class="${r.medication?'on':''}" type="button">💊 투약</button>
+          <button data-tper="${r.id}" class="${r.menstruation?'on blood':''}" type="button">🩸 생리</button>
+          <button data-edit="${r.id}" type="button">✏️ 수정</button>
           ${r.notionUrl ? `<a href="${r.notionUrl}" target="_blank" rel="noopener" style="font-size:12px;padding:6px 10px;border-radius:999px;background:#f1f2f7;color:#6b7280;text-decoration:none">노션 원본 ↗</a>` : ''}
         </div>
       </div>`;
@@ -744,10 +1086,7 @@ function renderDayDetail(){
   }
   box.innerHTML = html;
 
-  $$('[data-del]', box).forEach(b => b.onclick = () => {
-    if(!confirm('이 기록을 삭제할까?')) return;
-    remove(b.dataset.del); renderAll(); toast('삭제됐어');
-  });
+  $$('[data-del]', box).forEach(b => b.onclick = () => askDelete(b.dataset.del));
   $$('[data-tmed]', box).forEach(b => b.onclick = () => {
     const r = records.find(x => x.id === b.dataset.tmed); if(!r) return;
     r.medication = !r.medication; upsert(r); renderAll();
@@ -756,17 +1095,8 @@ function renderDayDetail(){
     const r = records.find(x => x.id === b.dataset.tper); if(!r) return;
     r.menstruation = !r.menstruation; upsert(r); renderAll();
   });
-  $$('[data-savenote]', box).forEach(b => b.onclick = () => {
-    const r = records.find(x => x.id === b.dataset.savenote); if(!r) return;
-    const ta = $('#n_' + r.id.replace(/[^a-zA-Z0-9_-]/g,''));
-    r.note = (ta.value || '').trim(); upsert(r); renderAll(); toast('메모 저장');
-  });
-  $$('[data-add]', box).forEach(b => b.onclick = () => {
-    $('#manualBox').open = true;
-    $('#mDate').value = b.dataset.add;
-    switchView('record');
-    $('#mNote').focus();
-  });
+  $$('[data-edit]', box).forEach(b => b.onclick = () => openEdit(b.dataset.edit));
+  $$('[data-add]', box).forEach(b => b.onclick = () => openEdit(null, b.dataset.add));
 }
 
 /* ============================================================
@@ -905,13 +1235,27 @@ function switchView(name){
   view = name;
   ['record','calendar','stats'].forEach(v => $('#view-' + v).hidden = (v !== name));
   $$('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.view === name));
-  if(name === 'calendar'){ renderCalendar(); renderDayDetail(); }
+  if(name === 'calendar') renderCalView();
   if(name === 'stats') renderStats();
   if(name === 'record') renderRecord();
 }
+/* 달력 / 리스트 모드 */
+let calMode = localStorage.getItem('mig_calmode') || 'calendar';
+function setCalMode(m){
+  calMode = m;
+  localStorage.setItem('mig_calmode', m);
+  $$('.seg button').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
+  $('#calPane').hidden = (m !== 'calendar');
+  $('#listPane').hidden = (m !== 'list');
+  renderCalView();
+}
+function renderCalView(){
+  if(calMode === 'list') renderList();
+  else { renderCalendar(); renderDayDetail(); }
+}
 function renderAll(){
   renderRecord();
-  if(view === 'calendar'){ renderCalendar(); renderDayDetail(); }
+  if(view === 'calendar') renderCalView();
   if(view === 'stats') renderStats();
 }
 
@@ -937,7 +1281,7 @@ async function boot(){
   loadDelta();
   calY = new Date().getFullYear();
   calM = new Date().getMonth();
-  $('#mDate').value = todayStr();
+  setNowDefaults(true);
 
   // 기억한 열쇠가 있으면 비밀번호 없이 열기
   const saved = localStorage.getItem(LS_KEY);
@@ -1017,6 +1361,8 @@ function enterApp(noData=false){
   $('#app').hidden = false;
   $('#pw').value = '';
   rebuild();
+  setNowDefaults(true);
+  setCalMode(calMode);
   switchView('record');
   renderAll();
   if(noData && !base.length && !localCount()) toast('빈 기록으로 시작해');
@@ -1032,7 +1378,29 @@ $('#medBtn').onclick = onMed;
 $('#periodBtn').onclick = onPeriod;
 $('#memoSave').onclick = onMemoSave;
 $('#memo').addEventListener('keydown', e => { if(e.key === 'Enter') onMemoSave(); });
-$('#mSave').onclick = onManualSave;
+$('#nowBtn').onclick = () => { setNowDefaults(true); toast('지금 시각으로'); };
+$('#endClear').onclick = () => { $('#endAt').value = ''; syncStartButton(); };
+$('#startAt').addEventListener('input', syncStartButton);
+$('#startAt').addEventListener('change', syncStartButton);
+$('#endAt').addEventListener('input', syncStartButton);
+$('#endAt').addEventListener('change', syncStartButton);
+$('#activeEdit').onclick = () => { const a = activeRec(); if(a) openEdit(a.id); else toast('진행 중인 기록이 없어'); };
+$('#manualAdd').onclick = () => openEdit(null, todayStr());
+$('#eStart').addEventListener('input', syncSheetFields);
+$('#eStart').addEventListener('change', syncSheetFields);
+$('#eMed').addEventListener('change', syncSheetFields);
+$('#ePer').addEventListener('change', syncSheetFields);
+$('#eWxBtn').onclick = lookupEditWeather;
+$('#eSave').onclick = saveEdit;
+$('#eDel').onclick = () => { if(editId) askDelete(editId); };
+$$('#sheet [data-close]').forEach(el => el.onclick = closeSheet);
+$('#recList').addEventListener('click', ev => {
+  const del = ev.target.closest('[data-del]');
+  if(del){ askDelete(del.dataset.del); return; }
+  const ed = ev.target.closest('[data-edit]');
+  if(ed){ openEdit(ed.dataset.edit); return; }
+});
+$$('.seg button').forEach(b => b.onclick = () => setCalMode(b.dataset.mode));
 $('#prevM').onclick = () => { calM--; if(calM < 0){ calM = 11; calY--; } renderCalendar(); renderDayDetail(); };
 $('#nextM').onclick = () => { calM++; if(calM > 11){ calM = 0; calY++; } renderCalendar(); renderDayDetail(); };
 $$('nav.tabs button').forEach(b => b.onclick = () => switchView(b.dataset.view));
