@@ -3,9 +3,12 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<meta name="theme-color" content="#1f1b4b" />
+<meta name="theme-color" content="#1e1b4b" />
 <meta name="robots" content="noindex, nofollow" />
 <title>편두통 기록</title>
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+<link rel="apple-touch-icon" href="./icon-192.png" />
 <style>
   :root{
     --bg:#f6f6f9; --card:#fff; --text:#14162b; --muted:#6b7280; --line:#e6e7ee;
@@ -1427,6 +1430,13 @@ $('#remember2').onchange = async e => {
     toast('기억 해제');
   }
 };
+
+/* ---------- PWA: 앱 설치 + 오프라인 ---------- */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
 
 setInterval(() => { if(!$('#app').hidden && view === 'record') { $('#nowText').textContent = (() => { const n=new Date(); return `${n.getFullYear()}년 ${n.getMonth()+1}월 ${n.getDate()}일 ${['일','월','화','수','목','금','토'][n.getDay()]}요일 ${hhmm(n)}`; })(); updateTimer(); if(!startTouched && !activeRec()) setNowDefaults(true); } }, 30000);
 

@@ -1,0 +1,27 @@
+{
+  "id": "/migraine-log/",
+  "name": "두통일지",
+  "short_name": "두통일지",
+  "description": "편두통을 기록하고 달력으로 보는 암호화 일지",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "/migraine-log/",
+  "scope": "/migraine-log/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#1e1b4b",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
