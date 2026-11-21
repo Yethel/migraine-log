@@ -207,6 +207,7 @@
   .litem .lday .wd{font-weight:600;color:var(--muted);font-size:12px;margin-left:4px}
   .litem .lmeta{font-size:12px;color:var(--muted);margin-top:4px;display:flex;flex-wrap:wrap;gap:5px}
   .litem .lmeta i{font-style:normal;background:#f1f2f7;border-radius:999px;padding:2px 8px}
+  .litem .lmeta i.nx{background:#e3edff;color:#25459b;font-weight:700}
   .litem .lnote{font-size:12px;color:#4b5563;margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .litem .ldel{font-size:13px;color:#c3c7d2;padding:6px 4px 6px 2px}
   .ldot{width:8px;height:8px;border-radius:50%;background:var(--primary);margin-top:7px;flex:0 0 auto}
@@ -640,11 +641,7 @@ async function fetchWeatherAt(when){
   const q = `latitude=${coords.lat}&longitude=${coords.lon}`
           + `&start_date=${ds}&end_date=${ds}`
           + `&hourly=temperature_2m,weather_code,surface_pressure&timezone=Asia%2FSeoul`;
-  const daysAgo = (Date.now() - when.getTime()) / 86400000;
-  const urls = [];
-  if(daysAgo <= 90 && daysAgo >= -10) urls.push('https://api.open-meteo.com/v1/forecast?' + q);
-  urls.push('https://archive-api.open-meteo.com/v1/archive?' + q);
-  for(const u of urls){
+  for(const u of wxUrls(ds, q)){
     try{
       const r = await fetch(u, { cache:'no-store' });
       if(!r.ok) continue;
@@ -653,6 +650,16 @@ async function fetchWeatherAt(when){
     }catch(e){ /* 다음 경로 시도 */ }
   }
   throw new Error('weather_fail');
+}
+/* 지난 날짜는 archive(이미 저장된 값과 같은 출처) 우선, 오늘·최근은 forecast 우선.
+   archive 는 약 5일치 지연이 있어서 최근 날짜는 forecast 로 받는다. */
+function wxUrls(ds, q){
+  const daysAgo = (Date.now() - new Date(ds + 'T12:00').getTime()) / 86400000;
+  const F = 'https://api.open-meteo.com/v1/forecast?' + q;
+  const A = 'https://archive-api.open-meteo.com/v1/archive?' + q;
+  if(daysAgo < -0.5) return [F];            // 앞날(예보)
+  if(daysAgo > 6) return [A, F];            // 지난 날짜
+  return [F, A];                            // 최근·오늘
 }
 
 /* ---------- 하루 단위 요약 (다음날 D+1 날씨용) ---------- */
@@ -701,11 +708,7 @@ async function fetchNextDay(ds){
           + `&start_date=${ds}&end_date=${d2}`
           + `&daily=weather_code,precipitation_sum,temperature_2m_max,temperature_2m_min`
           + `&hourly=surface_pressure&timezone=Asia%2FSeoul`;
-  const daysAgo = (Date.now() - new Date(ds + 'T12:00').getTime()) / 86400000;
-  const urls = [];
-  if(daysAgo <= 90 && daysAgo >= -10) urls.push('https://api.open-meteo.com/v1/forecast?' + q);
-  urls.push('https://archive-api.open-meteo.com/v1/archive?' + q);
-  for(const u of urls){
+  for(const u of wxUrls(ds, q)){
     try{
       const r = await fetch(u, { cache:'no-store' });
       if(!r.ok) continue;
@@ -1125,7 +1128,7 @@ function renderList(){
     if(marks) meta.push(`<i>${marks}</i>`);
     if(wx) meta.push(`<i>${esc(wx)}</i>`);
     if(r.pressure !== null && r.pressure !== undefined) meta.push(`<i>${r.pressure}hPa</i>`);
-    if(r.nextWeather && r.nextWeather.weather) meta.push(`<i>${esc(nxLabel(r.nextWeather))}</i>`);
+    if(r.nextWeather && r.nextWeather.weather) meta.push(`<i class="nx">${esc(nxLabel(r.nextWeather))}</i>`);
     html += `<div class="litem${isOngoing(r) ? ' open' : ''}">
       <div class="ldot"></div>
       <button class="lbody" data-edit="${r.id}" type="button">
@@ -1314,14 +1317,17 @@ function renderStats(){
     $('#nxHint').textContent = '';
   }
 
-  // 날씨별 분포
+  // 날씨별 분포 (당일)
   const wxRecs = records.filter(r => r.weather);
-  const tally = {};
-  for(const r of wxRecs) tally[r.weather] = (tally[r.weather] || 0) + 1;
+  const tally = {}, wxIconOf = {};
+  for(const r of wxRecs){
+    tally[r.weather] = (tally[r.weather] || 0) + 1;
+    if(!wxIconOf[r.weather] && typeof r.weatherCode === 'number') wxIconOf[r.weather] = wxIcon(r.weatherCode);
+  }
   const rows = Object.entries(tally).sort((a,b)=>b[1]-a[1]);
   const max = rows.length ? rows[0][1] : 1;
   $('#wxBars').innerHTML = rows.length
-    ? rows.map(([k,v]) => `<div class="bar"><div class="bl">${k}</div>
+    ? rows.map(([k,v]) => `<div class="bar"><div class="bl">${wxIconOf[k] ? wxIconOf[k] + ' ' : ''}${k}</div>
         <div class="bt"><div class="bf" style="width:${Math.round(v/max*100)}%"></div></div>
         <div class="bc">${v}회</div></div>`).join('')
     : '<div class="empty">날씨가 기록된 건이 아직 없어.</div>';
