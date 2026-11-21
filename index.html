@@ -674,7 +674,7 @@ function renderSync(){
   }
   const last = $('#syncLast');
   if(last){
-    last.textContent = lastSyncAt
+    last.textContent = (ghPat && lastSyncAt)
       ? `${ymd(new Date(lastSyncAt)).slice(5,7)}/${ymd(new Date(lastSyncAt)).slice(8,10)} ${hhmm(new Date(lastSyncAt))}`
       : '-';
   }
