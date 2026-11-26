@@ -1140,7 +1140,7 @@ function endLabel(r){
 }
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-const INTENSITY = ['🫤','😐','😑','🤨','😔','😬','😖','🥴'];
+const INTENSITY = ['🫤','😐','😑','🙃','🙄','🤨','😔','😟','😬','😖','😣','😫','🥴','😰','😵','🤯','🫠'];
 const inteOf = r => (r && r.intensity) || '';
 function renderInteRow(box, cur, onPick){
   if(!box) return;
