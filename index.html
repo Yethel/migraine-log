@@ -230,6 +230,18 @@
   .litem .ldel{font-size:13px;color:#c3c7d2;padding:6px 4px 6px 2px}
   .ldot{width:8px;height:8px;border-radius:50%;background:var(--primary);margin-top:7px;flex:0 0 auto}
   .litem.open .ldot{background:#e0326e}
+  .lday .linti{font-size:15px;margin-right:5px}
+
+  /* ---------- 두통 강도 ---------- */
+  .intecard h2{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  .intecard h2 .cur{font-size:18px;line-height:1;letter-spacing:0}
+  .integrid{display:flex;flex-wrap:wrap;gap:6px}
+  .integrid .ib{width:42px;height:42px;display:inline-flex;align-items:center;justify-content:center;font-size:22px;line-height:1;border-radius:13px;background:#f4f5fa;border:2px solid transparent;transition:.12s}
+  .integrid .ib.on{background:var(--soft);border-color:var(--primary)}
+  .integrid .ib.clr{width:auto;padding:0 12px;font-size:12px;font-weight:700;color:#6b7280}
+  .integrid .ib.clr.on{color:var(--primary-dark)}
+  .day .iemo{font-size:11px;line-height:1;margin-top:1px}
+  .rec .tm .ri{font-size:15px;margin-right:4px}
 
   /* ---------- 수정 시트 ---------- */
   #sheet{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;justify-content:center}
@@ -340,6 +352,11 @@
           <div class="lb">생리여부</div>
           <div class="st" id="periodState">아니오</div>
         </button>
+      </div>
+
+      <div class="card intecard">
+        <h2>두통 강도 <span class="cur" id="inteCur"></span></h2>
+        <div class="integrid" id="inteRow"></div>
       </div>
 
       <div class="memoline">
@@ -465,6 +482,7 @@
       <label class="chip" id="eMedChip"><input type="checkbox" id="eMed" /> 💊 투약</label>
       <label class="chip blood" id="ePerChip"><input type="checkbox" id="ePer" /> 🩸 생리여부</label>
     </div>
+    <div class="field"><span class="lb">두통 강도</span><div class="integrid" id="eInteRow"></div></div>
     <label class="field"><span class="lb">메모</span><textarea id="eNote" rows="3" placeholder="예: 오후부터 아팠고 저녁에 약 먹고 나음"></textarea></label>
     <div class="wxrow">
       <div class="wxv" id="eWx">날씨 없음</div>
@@ -1122,6 +1140,17 @@ function endLabel(r){
 }
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
+const INTENSITY = ['🫤','😐','😑','🤨','😔','😬','😖','🥴'];
+const inteOf = r => (r && r.intensity) || '';
+function renderInteRow(box, cur, onPick){
+  if(!box) return;
+  const sel = cur || '';
+  box.innerHTML = INTENSITY.map(e =>
+      `<button class="ib${e === sel ? ' on' : ''}" type="button" data-inte="${e}">${e}</button>`).join('')
+    + `<button class="ib clr${sel ? '' : ' on'}" type="button" data-inte="">없음</button>`;
+  $$('[data-inte]', box).forEach(b => b.onclick = () => onPick(b.dataset.inte || ''));
+}
+
 function setNowDefaults(force){
   const el = $('#startAt'); if(!el) return;
   if(force || !el.value) el.value = toLocalValue(new Date());
@@ -1176,6 +1205,17 @@ function renderRecord(){
   $('#periodBtn').classList.toggle('on', per);
   $('#medState').textContent = med ? '복용함' : '안 함';
   $('#periodState').textContent = per ? '예' : '아니오';
+
+  const inteTarget = act || target;
+  $('#inteCur').textContent = inteOf(inteTarget);
+  renderInteRow($('#inteRow'), inteOf(inteTarget), value => {
+    const t = activeRec() || todayTarget() || ensureTodayRecord();
+    const rec = records.find(r => r.id === t.id) || t;
+    rec.intensity = value || null;
+    upsert(rec);
+    renderAll();
+    toast(value ? `강도 ${value} 저장됨` : '강도 지움');
+  });
 
   $('#memo').value = (target && target.note) ? target.note.split('\n')[0] : '';
 
@@ -1285,7 +1325,10 @@ function onMemoSave(){
 /* ============================================================
    수정 시트 (시작·종료·투약·생리·메모 전부)
    ============================================================ */
-let editId = null, editOrig = null, editWx = null, editWxStart = null;
+let editId = null, editOrig = null, editWx = null, editWxStart = null, editIntensity = '';
+function renderEditInte(){
+  renderInteRow($('#eInteRow'), editIntensity, value => { editIntensity = value; renderEditInte(); });
+}
 let startTouched = false;
 
 function openEdit(id, presetDate){
@@ -1299,6 +1342,7 @@ function openEdit(id, presetDate){
                     temperature: b.temperature ?? null, pressure: b.pressure ?? null },
              next: b.nextWeather || null };
   editWxStart = b.start || null;
+  editIntensity = b.intensity || '';
   $('#sheetTitle').textContent = rec ? '기록 수정' : '새 기록';
   $('#eStart').value = toLocalValue(b.start);
   $('#eEnd').value = toLocalValue(b.end);
@@ -1306,6 +1350,7 @@ function openEdit(id, presetDate){
   $('#eMed').checked = !!b.medication;
   $('#ePer').checked = !!b.menstruation;
   $('#eNote').value = b.note || '';
+  renderEditInte();
   $('#eDel').hidden = !rec;
   $('#eHint').textContent = rec
     ? '시작·종료 시각을 고치면 지속시간·달력·통계가 바로 다시 계산돼.'
@@ -1398,6 +1443,7 @@ async function saveEdit(){
     medication: $('#eMed').checked,
     menstruation: $('#ePer').checked,
     note: $('#eNote').value.trim(),
+    intensity: editIntensity || null,
     weather: wxDay.weather, weatherCode: wxDay.weatherCode,
     temperature: wxDay.temperature, pressure: wxDay.pressure,
     nextWeather: wxNext,
@@ -1477,7 +1523,7 @@ function renderList(){
     html += `<div class="litem${isOngoing(r) ? ' open' : ''}">
       <div class="ldot"></div>
       <button class="lbody" data-edit="${r.id}" type="button">
-        <div class="lday">${Number(ds.slice(5,7))}월 ${Number(ds.slice(8,10))}일<span class="wd">${weekdayOf(ds)}</span></div>
+        <div class="lday">${r.intensity ? `<span class="linti">${esc(r.intensity)}</span>` : ''}${Number(ds.slice(5,7))}월 ${Number(ds.slice(8,10))}일<span class="wd">${weekdayOf(ds)}</span></div>
         <div class="lmeta">${meta.join('')}</div>
         ${r.note ? `<div class="lnote">${esc(oneLine(r.note))}</div>` : ''}
       </button>
@@ -1518,9 +1564,11 @@ function renderCalendar(){
     cell.className = 'day' + (list.length ? ' has' : '') + (ds === todayStr() ? ' today' : '') + (ds === selDate ? ' sel' : '');
     let inner = `<span>${d}</span>`;
     const marks = [med ? '💊' : '', per ? '🩸' : ''].filter(Boolean).join('');
+    const withInte = list.find(r => r.intensity);
     if(list.length > 1) inner += `<span class="n">${list.length}회</span>`;
+    if(withInte) inner += `<span class="iemo">${esc(withInte.intensity)}</span>`;
     if(marks) inner += `<span class="marks">${marks}</span>`;
-    else if(list.length === 1) inner += `<span class="ddot"></span>`;
+    else if(list.length === 1 && !withInte) inner += `<span class="ddot"></span>`;
     cell.innerHTML = inner;
     cell.onclick = () => { selDate = (selDate === ds) ? null : ds; renderCalendar(); renderDayDetail(); };
     grid.appendChild(cell);
@@ -1550,7 +1598,7 @@ function renderDayDetail(){
       if(r.nextWeather && r.nextWeather.weather) meta.push(`<i>${esc(nxLabel(r.nextWeather, true))}</i>`);
       html += `<div class="rec" data-rec="${r.id}">
         <div class="top">
-          <div class="tm">${s ? hhmm(s) + (e ? ' ~ ' + hhmm(e) : '') : '시간 미기록'}</div>
+          <div class="tm">${r.intensity ? `<span class="ri">${esc(r.intensity)}</span>` : ''}${s ? hhmm(s) + (e ? ' ~ ' + hhmm(e) : '') : '시간 미기록'}</div>
           <button class="del" data-del="${r.id}" type="button">삭제</button>
         </div>
         ${meta.length ? `<div class="meta">${meta.join('')}</div>` : ''}
@@ -1719,13 +1767,13 @@ function exportJSON(){
   download(`편두통기록_${todayStr()}.json`, JSON.stringify(records, null, 2), 'application/json');
 }
 function exportCSV(){
-  const head = ['날짜','시작','종료','지속(분)','투약','생리여부','날씨','기온(℃)','기압(hPa)','다음날날씨','다음날강수(mm)','다음날비눈','메모'];
+  const head = ['날짜','시작','종료','지속(분)','강도','투약','생리여부','날씨','기온(℃)','기압(hPa)','다음날날씨','다음날강수(mm)','다음날비눈','메모'];
   const q = v => `"${String(v ?? '').replace(/"/g,'""')}"`;
   const lines = [head.join(',')];
   for(const r of records){
     const nw = r.nextWeather || {};
     lines.push([dateOf(r), r.start?hhmm(startDT(r)):'', r.end?hhmm(endDT(r)):'',
-      durationMin(r) ?? '', r.medication?'O':'', r.menstruation?'O':'',
+      durationMin(r) ?? '', r.intensity ?? '', r.medication?'O':'', r.menstruation?'O':'',
       r.weather ?? '', r.temperature ?? '', r.pressure ?? '',
       nw.weather ?? '', nw.precipMm ?? '', (nw.weather ? (nw.isPrecip ? 'O' : 'X') : ''),
       (r.note || '').replace(/\n/g,' ')].map(q).join(','));
